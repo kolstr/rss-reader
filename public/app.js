@@ -266,32 +266,84 @@ document.getElementById('feedUrl')?.addEventListener('blur', function() {
   }
 });
 
-// Auto-detect color when icon URL is changed
-document.getElementById('feedIcon')?.addEventListener('blur', async function() {
-  const iconUrl = this.value.trim();
-  if (iconUrl && iconUrl.startsWith('http')) {
-    try {
-      const response = await fetch('/api/feeds/detect-color-from-icon', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ iconUrl }),
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.color) {
-          // Update color picker
-          const colorInput = document.getElementById('feedColor');
-          if (colorInput) {
-            colorInput.value = result.color;
-          }
+// Detect color from icon URL - shared function
+async function detectColorFromIcon() {
+  const iconInput = document.getElementById('feedIcon');
+  const iconUrl = iconInput?.value.trim();
+  
+  if (!iconUrl || !iconUrl.startsWith('http')) {
+    console.log('Invalid icon URL for color detection');
+    return;
+  }
+  
+  const detectBtn = document.getElementById('detectColorBtn');
+  if (detectBtn) {
+    detectBtn.disabled = true;
+    detectBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+  }
+  
+  try {
+    const response = await fetch('/api/feeds/detect-color-from-icon', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ iconUrl }),
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.color) {
+        // Update color picker
+        const colorInput = document.getElementById('feedColor');
+        if (colorInput) {
+          colorInput.value = result.color;
         }
       }
-    } catch (error) {
-      console.error('Error detecting color from icon:', error);
+    } else {
+      console.error('Failed to detect color:', await response.text());
+    }
+  } catch (error) {
+    console.error('Error detecting color from icon:', error);
+  } finally {
+    if (detectBtn) {
+      detectBtn.disabled = false;
+      detectBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>';
     }
   }
-});
+}
+
+// Track original icon URL to detect changes
+let originalIconUrl = '';
+
+// Auto-detect color when icon URL is changed (on blur and change)
+function setupIconColorDetection() {
+  const iconInput = document.getElementById('feedIcon');
+  if (!iconInput) return;
+  
+  // Store original value when focused
+  iconInput.addEventListener('focus', function() {
+    originalIconUrl = this.value.trim();
+  });
+  
+  // Detect on blur only if value changed
+  iconInput.addEventListener('blur', async function() {
+    const newUrl = this.value.trim();
+    if (newUrl && newUrl.startsWith('http') && newUrl !== originalIconUrl) {
+      await detectColorFromIcon();
+    }
+  });
+  
+  // Also detect on change event (handles paste, autocomplete)
+  iconInput.addEventListener('change', async function() {
+    const newUrl = this.value.trim();
+    if (newUrl && newUrl.startsWith('http') && newUrl !== originalIconUrl) {
+      originalIconUrl = newUrl; // Update to prevent duplicate calls
+      await detectColorFromIcon();
+    }
+  });
+}
+
+// Initialize icon color detection on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', setupIconColorDetection);
 
 // Delete feed
 async function deleteFeed() {

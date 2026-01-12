@@ -90,20 +90,31 @@ app.post('/api/feeds/detect-color-from-icon', async (req, res) => {
     const axios = require('axios');
     const { extractColorFromImage } = require('./services/iconDetector');
     
-    // Fetch the icon
+    // Fetch the icon with better error handling
     const response = await axios.get(iconUrl, {
       responseType: 'arraybuffer',
-      timeout: 5000,
+      timeout: 10000,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'image/*,*/*'
+      },
+      maxRedirects: 5,
+      validateStatus: (status) => status < 400
     });
     
     const imageBuffer = Buffer.from(response.data);
     
-    // Check if it's an .ico file
-    const contentType = response.headers['content-type'] || '';
-    const isIco = contentType.includes('x-icon') || iconUrl.endsWith('.ico');
+    // Check if it's an .ico file based on content-type or URL
+    const contentType = (response.headers['content-type'] || '').toLowerCase();
+    const isIco = contentType.includes('x-icon') || 
+                  contentType.includes('vnd.microsoft.icon') ||
+                  iconUrl.toLowerCase().endsWith('.ico');
+    
+    // Check for SVG
+    if (contentType.includes('svg')) {
+      console.log('SVG detected via content-type, using default color');
+      return res.json({ success: true, color: '#3b82f6' });
+    }
     
     // Extract color
     const color = await extractColorFromImage(imageBuffer, isIco);
@@ -113,7 +124,9 @@ app.post('/api/feeds/detect-color-from-icon', async (req, res) => {
       color: color
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error detecting color from icon:', error.message);
+    // Return default color instead of error to be more resilient
+    res.json({ success: true, color: '#3b82f6', warning: error.message });
   }
 });
 

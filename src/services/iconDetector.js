@@ -24,19 +24,35 @@ async function extractColorFromImage(imageBuffer, isIco = false) {
     // Convert .ico to PNG first if needed
     if (isIco) {
       try {
-        const images = await parseICO(imageBuffer, 'image/png');
+        // Ensure we have a proper ArrayBuffer for icojs
+        const arrayBuffer = imageBuffer.buffer.slice(
+          imageBuffer.byteOffset,
+          imageBuffer.byteOffset + imageBuffer.byteLength
+        );
+        const images = await parseICO(arrayBuffer, 'image/png');
         if (images && images.length > 0) {
           // Use the largest image
           const largestImage = images.reduce((prev, current) => 
             (prev.width > current.width ? prev : current)
           );
-          // icojs returns a Buffer directly
-          imageToProcess = largestImage.buffer ? Buffer.from(largestImage.buffer) : Buffer.from(largestImage);
+          // icojs returns an ArrayBuffer in the buffer property
+          if (largestImage.buffer) {
+            imageToProcess = Buffer.from(largestImage.buffer);
+          } else {
+            console.log('ICO image has no buffer, using original');
+          }
         }
       } catch (icoError) {
-        console.log('Could not parse .ico file:', icoError.message, '- using default color');
-        return '#3b82f6';
+        console.log('Could not parse .ico file:', icoError.message, '- trying as regular image');
+        // Don't return default, try to process as regular image
       }
+    }
+    
+    // Check if it might be an SVG (text-based)
+    const bufferStart = imageToProcess.slice(0, 100).toString('utf8');
+    if (bufferStart.includes('<svg') || bufferStart.includes('<?xml')) {
+      console.log('SVG detected, using default color');
+      return '#3b82f6';
     }
     
     const image = await Jimp.read(imageToProcess);
