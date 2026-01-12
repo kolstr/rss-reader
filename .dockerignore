@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+todo.txt
+.env
+*.md
+.vscode
+data/*.db
+data/*.db-*

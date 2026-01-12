@@ -1,0 +1,37 @@
+{
+  "name": "rss-reader",
+  "version": "1.0.0",
+  "description": "RSS feed reader with Node.js, EJS, SQLite, and Tailwind",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "concurrently \"npm run watch:css\" \"nodemon src/server.js\"",
+    "start": "node src/server.js",
+    "build:css": "tailwindcss -i ./src/styles/input.css -o ./public/styles.css --minify",
+    "watch:css": "tailwindcss -i ./src/styles/input.css -o ./public/styles.css --watch"
+  },
+  "keywords": [
+    "rss",
+    "reader",
+    "feed"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "better-sqlite3": "^11.7.0",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "icojs": "^0.20.1",
+    "jimp": "^0.22.12",
+    "node-cron": "^3.0.3",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.9",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17"
+  }
+}

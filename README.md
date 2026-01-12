@@ -1,0 +1,154 @@
+# RSS Reader
+
+A modern RSS feed reader built with Node.js, EJS templating, SQLite database, and Tailwind CSS.
+
+## Features
+
+- **Feed Management**: Add, edit, and delete RSS feeds via a settings modal
+- **Aggregated View**: View all items from all feeds in one place via the "All" feed
+- **Feed Sidebar**: Browse individual feeds with unread counts
+- **Visual Indicators**: 
+  - Colored left border on cards indicates the source feed
+  - Gray border for read items
+  - Feed icons displayed in sidebar and on cards
+- **Item Cards**: 
+  - Display article title, description, and images
+  - Clickable to open in new tab
+  - Mark as read/unread functionality
+- **Auto Image Extraction**: Automatically extracts images from RSS feeds
+- **Favicon Support**: Auto-fetches feed icons or use custom icon URLs
+- **Auto Color Detection**: Automatically extracts dominant color from feed icon (server-side, no CORS issues)
+- **Smart Icon Detection**: Automatically detects icon when you enter feed URL
+- **Auto-Refresh**: Feeds automatically refresh every 30 minutes via cron job
+- **Dark Mode**: Toggle between light and dark themes with persistent preference
+- **Mobile Responsive**: Sidebar with hamburger menu toggle for mobile devices
+
+## Tech Stack
+
+- **Backend**: Node.js + Express
+- **Templating**: EJS
+- **Database**: SQLite (better-sqlite3)
+- **RSS Parsing**: rss-parser
+- **Image Processing**: Jimp (for color extraction) + icojs (for .ico conversion)
+- **HTTP Client**: Axios (for fetching icons)
+- **Styling**: Tailwind CSS (with dark mode)
+- **Scheduling**: node-cron (for auto-refresh)
+- **Development**: Nodemon + Concurrently
+
+## Installation
+
+```bash
+npm install
+```
+
+## Usage
+
+### Development Mode (with auto-reload and CSS watch)
+
+```bash
+npm run dev
+```
+
+### Production Mode
+
+```bash
+# Build CSS
+npm run build:css
+
+# Start server
+npm start
+```
+
+The application will be available at http://localhost:3000
+
+## Project Structure
+
+```
+rss/
+├── migrations/           # Database migrations
+│   └── 001_init.sql
+├── src/
+│   ├── db.js            # Database connection and queries
+│   ├── server.js        # Express server and routes
+│   ├── services/
+│   │   └── rss.js       # RSS fetching and parsing
+│   └── styles/
+│       └── input.css    # Tailwind input file
+├── views/
+│   ├── layout.ejs       # Base layout
+│   └── index.ejs        # Main page with sidebar and cards
+├── public/
+│   ├── app.js           # Client-side JavaScript
+│   └── styles.css       # Compiled Tailwind CSS
+├── data/
+│   └── app.sqlite       # SQLite database (auto-created)
+└── package.json
+```
+
+## API Endpoints
+
+- `GET /` - Main page (all items or filtered by feed)
+- `GET /api/feeds` - Get all feeds
+- `POST /api/feeds/detect-icon` - Detect icon and color from feed URL
+- `POST /api/feeds` - Create a new feed
+- `PUT /api/feeds/:id` - Update a feed
+- `DELETE /api/feeds/:id` - Delete a feed
+- `POST /api/feeds/:id/refresh` - Refresh a specific feed
+- `POST /api/feeds/refresh-all` - Refresh all feeds
+- `POST /api/items/:id/read` - Mark item as read
+- `POST /api/items/:id/unread` - Mark item as unread
+
+## How to Use
+
+1. **Add a Feed**: Click the "Add Feed" button in the sidebar
+2. **Configure Feed**: 
+   - Enter the feed title
+   - Enter the RSS/Atom feed URL and tab out - the icon and color will be auto-detected
+   - The icon URL and color fields will be automatically filled
+   - Manually adjust if desired
+3. **Refresh Feeds**: 
+   - Click "Refresh All" to fetch latest items manually
+   - Feeds automatically refresh every 30 minutes in the background
+4. **Browse Items**: 
+   - Click "All" to see items from all feeds
+   - Click individual feeds to filter by source
+5. **Read Items**: Click any card to open the article in a new tab
+6. **Manage Read Status**: Use "Mark Read/Unread" buttons to track reading progress
+7. **Dark Mode**: Click the sun/moon icon in the sidebar header to toggle dark mode
+8. **Mobile**: Use the hamburger menu (☰) to show/hide the sidebar on mobile devices
+
+## Example RSS Feeds
+
+Here are some popular RSS feeds you can add:
+
+- **Hacker News**: https://news.ycombinator.com/rss
+- **Reddit Programming**: https://www.reddit.com/r/programming/.rss
+- **TechCrunch**: https://techcrunch.com/feed/
+- **Ars Technica**: https://feeds.arstechnica.com/arstechnica/index
+- **The Verge**: https://www.theverge.com/rss/index.xml
+
+## Database Schema
+
+### Feeds Table
+- `id`: Primary key
+- `title`: Feed name
+- `url`: RSS feed URL
+- `icon_url`: Feed icon/favicon URL
+- `color`: Color code for visual identification
+- `created_at`, `updated_at`: Timestamps
+
+### Items Table
+- `id`: Primary key
+- `feed_id`: Foreign key to feeds
+- `guid`: Unique identifier from feed
+- `title`: Item title
+- `link`: Item URL
+- `description`: Item description/summary
+- `image_url`: Article image
+- `pub_date`: Publication date
+- `read_at`: Timestamp when marked as read
+- `created_at`: Timestamp
+
+## License
+
+MIT

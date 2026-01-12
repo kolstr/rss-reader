@@ -1,0 +1,201 @@
+const express = require('express');
+const path = require('path');
+const cron = require('node-cron');
+const { feedQueries, itemQueries, statsQueries } = require('./db');
+const { refreshFeed, refreshAllFeeds, getFaviconUrl } = require('./services/rss');
+const { detectIconAndColor } = require('./services/iconDetector');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// View engine setup
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, '..', 'views'));
+
+// Helper to get unread counts per feed
+function getUnreadCounts(feeds) {
+  const counts = {};
+  for (const feed of feeds) {
+    const result = statsQueries.getUnreadCountByFeed.get(feed.id);
+    counts[feed.id] = result ? result.count : 0;
+  }
+  return counts;
+}
+
+// Routes
+
+// Home page - show all items or items from a specific feed
+app.get('/', (req, res) => {
+  const feedId = req.query.feed;
+  const feeds = feedQueries.getAll.all();
+  const unreadCounts = getUnreadCounts(feeds);
+  const totalUnread = statsQueries.getUnreadCount.get().count;
+  
+  let items;
+  let currentFeed = null;
+  
+  if (feedId) {
+    items = itemQueries.getByFeed.all(feedId, 100);
+    currentFeed = feedQueries.getById.get(feedId);
+  } else {
+    items = itemQueries.getAll.all(100);
+  }
+  
+  res.render('index', {
+    feeds,
+    items,
+    currentFeed,
+    unreadCounts,
+    totalUnread,
+  });
+});
+
+// API: Get all feeds
+app.get('/api/feeds', (req, res) => {
+  const feeds = feedQueries.getAll.all();
+  const unreadCounts = getUnreadCounts(feeds);
+  res.json({ feeds, unreadCounts });
+});
+
+// API: Detect icon and color from feed URL
+app.post('/api/feeds/detect-icon', async (req, res) => {
+  const { feedUrl } = req.body;
+  
+  if (!feedUrl) {
+    return res.status(400).json({ error: 'Feed URL is required' });
+  }
+  
+  try {
+    const result = await detectIconAndColor(feedUrl);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Create a new feed
+app.post('/api/feeds', async (req, res) => {
+  const { title, url, color } = req.body;
+  
+  if (!title || !url) {
+    return res.status(400).json({ error: 'Title and URL are required' });
+  }
+  
+  try {
+    const iconUrl = getFaviconUrl(url);
+    const result = feedQueries.create.run(title, url, iconUrl, color || '#3b82f6');
+    
+    // Fetch initial items
+    await refreshFeed(result.lastInsertRowid, url);
+    
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Update a feed
+app.put('/api/feeds/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, url, icon_url, color } = req.body;
+  
+  if (!title || !url) {
+    return res.status(400).json({ error: 'Title and URL are required' });
+  }
+  
+  try {
+    feedQueries.update.run(title, url, icon_url, color || '#3b82f6', id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Delete a feed
+app.delete('/api/feeds/:id', (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    feedQueries.delete.run(id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Refresh a specific feed
+app.post('/api/feeds/:id/refresh', async (req, res) => {
+  const { id } = req.params;
+  const feed = feedQueries.getById.get(id);
+  
+  if (!feed) {
+    return res.status(404).json({ error: 'Feed not found' });
+  }
+  
+  try {
+    const result = await refreshFeed(feed.id, feed.url);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Refresh all feeds
+app.post('/api/feeds/refresh-all', async (req, res) => {
+  const feeds = feedQueries.getAll.all();
+  
+  try {
+    const results = await refreshAllFeeds(feeds);
+    res.json({ success: true, results });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Mark item as read
+app.post('/api/items/:id/read', (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    itemQueries.markRead.run(id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Mark item as unread
+app.post('/api/items/:id/unread', (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    itemQueries.markUnread.run(id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Set up cron job to refresh feeds every 30 minutes
+cron.schedule('*/30 * * * *', async () => {
+  console.log('Running scheduled feed refresh...');
+  const feeds = feedQueries.getAll.all();
+  try {
+    const results = await refreshAllFeeds(feeds);
+    const totalNew = results.reduce((sum, r) => sum + (r.newItems || 0), 0);
+    console.log(`Feed refresh complete. ${totalNew} new items found.`);
+  } catch (error) {
+    console.error('Error during scheduled refresh:', error);
+  }
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`RSS Reader running on http://localhost:${PORT}`);
+  console.log('Feed auto-refresh enabled (every 30 minutes)');
+});
