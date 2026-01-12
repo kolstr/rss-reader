@@ -78,6 +78,45 @@ app.post('/api/feeds/detect-icon', async (req, res) => {
   }
 });
 
+// API: Detect color from icon URL
+app.post('/api/feeds/detect-color-from-icon', async (req, res) => {
+  const { iconUrl } = req.body;
+  
+  if (!iconUrl) {
+    return res.status(400).json({ error: 'Icon URL is required' });
+  }
+  
+  try {
+    const axios = require('axios');
+    const { extractColorFromImage } = require('./services/iconDetector');
+    
+    // Fetch the icon
+    const response = await axios.get(iconUrl, {
+      responseType: 'arraybuffer',
+      timeout: 5000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    const imageBuffer = Buffer.from(response.data);
+    
+    // Check if it's an .ico file
+    const contentType = response.headers['content-type'] || '';
+    const isIco = contentType.includes('x-icon') || iconUrl.endsWith('.ico');
+    
+    // Extract color
+    const color = await extractColorFromImage(imageBuffer, isIco);
+    
+    res.json({
+      success: true,
+      color: color
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // API: Create a new feed
 app.post('/api/feeds', async (req, res) => {
   const { title, url, color } = req.body;

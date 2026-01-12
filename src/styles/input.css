@@ -30,4 +30,26 @@
     border-left-width: 4px;
     @apply border-gray-300;
   }
+
+  /* Group hover utilities for feed icon swap */
+  .group:hover .group-hover\:hidden {
+    display: none;
+  }
+  
+  .group:hover .group-hover\:block {
+    display: block;
+  }
+}
+
+/* Feed item icon hover swap */
+.feed-item-container .settings-icon {
+  display: none;
+}
+
+.feed-item-container:hover .settings-icon {
+  display: block;
+}
+
+.feed-item-container:hover .feed-icon {
+  display: none;
 }

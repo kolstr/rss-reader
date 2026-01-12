@@ -266,6 +266,33 @@ document.getElementById('feedUrl')?.addEventListener('blur', function() {
   }
 });
 
+// Auto-detect color when icon URL is changed
+document.getElementById('feedIcon')?.addEventListener('blur', async function() {
+  const iconUrl = this.value.trim();
+  if (iconUrl && iconUrl.startsWith('http')) {
+    try {
+      const response = await fetch('/api/feeds/detect-color-from-icon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ iconUrl }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.color) {
+          // Update color picker
+          const colorInput = document.getElementById('feedColor');
+          if (colorInput) {
+            colorInput.value = result.color;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error detecting color from icon:', error);
+    }
+  }
+});
+
 // Delete feed
 async function deleteFeed() {
   if (!currentFeedId) return;

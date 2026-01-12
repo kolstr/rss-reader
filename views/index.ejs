@@ -55,18 +55,18 @@
         <!-- Individual feeds -->
         <div class="mt-2 space-y-1">
           <% feeds.forEach(feed => { %>
-            <div class="group relative" data-feed-id="<%= feed.id %>">
+            <div class="feed-item-container relative" data-feed-id="<%= feed.id %>">
               <a href="/?feed=<%= feed.id %>" class="flex items-center px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition <%= currentFeed && currentFeed.id === feed.id ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300' %>">
                 <!-- Icon container that swaps with settings icon on hover -->
                 <div class="w-5 h-5 mr-3 flex items-center justify-center relative">
                   <% if (feed.icon_url) { %>
-                    <img src="<%= feed.icon_url %>" alt="" class="w-5 h-5 rounded absolute inset-0 group-hover:hidden transition-opacity" onerror="this.style.display='none'">
+                    <img src="<%= feed.icon_url %>" alt="" class="feed-icon w-5 h-5 rounded" onerror="this.style.display='none'">
                   <% } else { %>
-                    <div class="w-5 h-5 rounded absolute inset-0 group-hover:hidden transition-opacity" style="background-color: <%= feed.color %>"></div>
+                    <div class="feed-icon w-5 h-5 rounded" style="background-color: <%= feed.color %>"></div>
                   <% } %>
                   <!-- Settings icon appears on hover -->
-                  <svg onclick="event.preventDefault(); editFeed(<%= feed.id %>, '<%= feed.title.replace(/'/g, "\\'") %>', '<%= feed.url.replace(/'/g, "\\'") %>', '<%= feed.icon_url || '' %>', '<%= feed.color %>')" 
-                       class="w-5 h-5 text-gray-500 dark:text-gray-400 hidden group-hover:block absolute inset-0 cursor-pointer transition-opacity" 
+                  <svg onclick="event.preventDefault(); event.stopPropagation(); editFeed(<%= feed.id %>, '<%= feed.title.replace(/'/g, "\\'") %>', '<%= feed.url.replace(/'/g, "\\'") %>', '<%= feed.icon_url ? feed.icon_url.replace(/'/g, "\\'") : '' %>', '<%= feed.color %>')" 
+                       class="settings-icon w-5 h-5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer absolute inset-0" 
                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
