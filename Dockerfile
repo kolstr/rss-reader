@@ -12,14 +12,17 @@ RUN apt-get update && \
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (including devDependencies for build)
+RUN npm ci
 
 # Copy application files
 COPY . .
 
 # Build Tailwind CSS
 RUN npm run build:css
+
+# Remove devDependencies to reduce image size
+RUN npm prune --production
 
 # Create data directory for SQLite database
 RUN mkdir -p /app/data
