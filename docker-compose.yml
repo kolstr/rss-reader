@@ -4,7 +4,7 @@ services:
     container_name: rss-reader
     restart: unless-stopped
     ports:
-      - "6789:3000"
+      - "6789:6789"
     volumes:
       # Persist SQLite database
       - ./data:/app/data
