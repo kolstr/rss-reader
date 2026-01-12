@@ -28,7 +28,7 @@ RUN npm prune --production
 RUN mkdir -p /app/data
 
 # Expose port
-EXPOSE 3000
+EXPOSE 6789
 
 # Set environment variable
 ENV NODE_ENV=production

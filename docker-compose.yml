@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   rss-reader:
     build: .
@@ -12,4 +10,3 @@ services:
       - ./data:/app/data
     environment:
       - NODE_ENV=production
-      - PORT=3000
