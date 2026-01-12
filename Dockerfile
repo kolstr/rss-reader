@@ -13,7 +13,7 @@ RUN apt-get update && \
 COPY package*.json ./
 
 # Install all dependencies (including devDependencies for build)
-RUN npm ci
+RUN npm ci --only=production && npm cache clean --force
 
 # Copy application files
 COPY . .
