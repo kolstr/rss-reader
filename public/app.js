@@ -2,6 +2,90 @@
 let currentFeedId = null;
 let confirmCallback = null;
 
+// Auto-mark as read on scroll out of view
+let readObserver = null;
+const observedUnreadItems = new Set();
+
+// Unread filter management
+let showOnlyUnread = localStorage.getItem('showOnlyUnread') === 'true';
+
+function initUnreadFilter() {
+  updateUnreadFilter();
+}
+
+function toggleUnreadFilter() {
+  showOnlyUnread = !showOnlyUnread;
+  localStorage.setItem('showOnlyUnread', showOnlyUnread);
+  updateUnreadFilter();
+}
+
+function updateUnreadFilter() {
+  const toggleBtn = document.getElementById('unreadToggle');
+  const toggleText = document.getElementById('unreadToggleText');
+  const toggleIcon = document.getElementById('unreadToggleIcon');
+  const articles = document.querySelectorAll('article[data-item-id]');
+  
+  // Temporarily pause the observer during filter changes
+  if (readObserver) {
+    readObserver.disconnect();
+  }
+  
+  if (showOnlyUnread) {
+    // Show only unread items
+    toggleText.textContent = 'Show All';
+    toggleBtn?.classList.add('bg-blue-500', 'hover:bg-blue-600', 'text-white', 'dark:bg-blue-600', 'dark:hover:bg-blue-700');
+    toggleBtn?.classList.remove('bg-gray-100', 'hover:bg-gray-200', 'dark:bg-gray-700', 'dark:hover:bg-gray-600', 'text-gray-700', 'dark:text-gray-200');
+    
+    // Eye-off icon
+    if (toggleIcon) {
+      toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>';
+    }
+    
+    let visibleCount = 0;
+    articles.forEach(article => {
+      const isRead = article.classList.contains('feed-border-read');
+      if (isRead) {
+        article.style.display = 'none';
+      } else {
+        article.style.display = '';
+        visibleCount++;
+      }
+    });
+    
+    const countEl = document.getElementById('visibleItemsCount');
+    if (countEl) countEl.textContent = visibleCount;
+  } else {
+    // Show all items
+    toggleText.textContent = 'Show Unread';
+    toggleBtn?.classList.remove('bg-blue-500', 'hover:bg-blue-600', 'text-white', 'dark:bg-blue-600', 'dark:hover:bg-blue-700');
+    toggleBtn?.classList.add('bg-gray-100', 'hover:bg-gray-200', 'dark:bg-gray-700', 'dark:hover:bg-gray-600', 'text-gray-700', 'dark:text-gray-200');
+    
+    // Eye icon
+    if (toggleIcon) {
+      toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>';
+    }
+    
+    articles.forEach(article => {
+      article.style.display = '';
+    });
+    
+    const countEl = document.getElementById('visibleItemsCount');
+    if (countEl) countEl.textContent = articles.length;
+  }
+  
+  // Resume the observer after a short delay to let DOM settle
+  setTimeout(() => {
+    if (readObserver) {
+      observedUnreadItems.clear();
+      document.querySelectorAll('article.feed-border-unread').forEach(article => {
+        if (article.style.display !== 'none') {
+          readObserver.observe(article);
+        }
+      });
+    }
+  }, 100);
+}
+
 // Custom alert modal
 function showAlert(message, title = 'Notice', type = 'info') {
   const modal = document.getElementById('alertModal');
@@ -142,6 +226,9 @@ function toggleDarkMode() {
 
 // Initialize dark mode on page load
 initDarkMode();
+
+// Initialize unread filter on page load
+initUnreadFilter();
 
 // Sidebar management for mobile
 function toggleSidebar() {
@@ -503,6 +590,9 @@ async function toggleRead(itemId, markAsRead) {
           button.textContent = markAsRead ? 'Mark Unread' : 'Mark Read';
           button.setAttribute('onclick', `toggleRead(${itemId}, ${!markAsRead})`);
         }
+        
+        // Update filter display
+        updateUnreadFilter();
       }
     }
   } catch (error) {
@@ -532,14 +622,13 @@ function markAsRead(itemId, event) {
             updateUnreadCounts(feedId);
           }
         }
+        
+        // Update filter display
+        updateUnreadFilter();
       }
     })
     .catch(err => console.error('Error marking as read:', err));
 }
-
-// Auto-mark as read on scroll out of view
-let readObserver = null;
-const observedUnreadItems = new Set();
 
 function initAutoMarkAsRead() {
   // Cleanup existing observer
@@ -587,6 +676,9 @@ function initAutoMarkAsRead() {
               button.textContent = 'Mark Unread';
               button.setAttribute('onclick', `toggleRead(${itemId}, false)`);
             }
+            
+            // Update filter display
+            updateUnreadFilter();
           })
           .catch(err => console.error('Error auto-marking as read:', err));
       }
