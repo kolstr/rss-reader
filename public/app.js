@@ -601,13 +601,19 @@ const autoReadState = {
 
 let markRemainingButton = null;
 
+function setMarkRemainingButtonLabel(button, isWorking) {
+  const icon = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+  const text = isWorking ? 'Marking...' : 'Mark remaining as read';
+  button.innerHTML = `${icon}<span>${text}</span>`;
+}
+
 function ensureMarkRemainingButton() {
   if (markRemainingButton) return markRemainingButton;
   const button = document.createElement('button');
   button.type = 'button';
   button.id = 'markRemainingBtn';
-  button.className = 'hidden fixed bottom-4 right-4 z-40 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition shadow-lg';
-  button.textContent = 'Mark remaining as read';
+  button.className = 'hidden fixed bottom-4 right-4 z-40 flex items-center gap-2 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition shadow-lg';
+  setMarkRemainingButtonLabel(button, false);
   button.addEventListener('click', async () => {
     await markRemainingVisibleAsRead();
   });
@@ -666,7 +672,7 @@ async function markRemainingVisibleAsRead() {
 
   const button = ensureMarkRemainingButton();
   button.disabled = true;
-  button.textContent = 'Marking...';
+  setMarkRemainingButtonLabel(button, true);
 
   try {
     const response = await fetch('/api/items/bulk-read', {
@@ -690,7 +696,7 @@ async function markRemainingVisibleAsRead() {
     console.error('Error marking remaining as read:', error);
   } finally {
     button.disabled = false;
-    button.textContent = 'Mark remaining as read';
+    setMarkRemainingButtonLabel(button, false);
     updateMarkRemainingButtonVisibility();
   }
 }
