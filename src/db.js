@@ -54,7 +54,7 @@ const itemQueries = {
     SELECT items.*, feeds.title as feed_title, feeds.color as feed_color, feeds.icon_url as feed_icon
     FROM items 
     JOIN feeds ON items.feed_id = feeds.id 
-    ORDER BY items.pub_date DESC 
+    ORDER BY datetime(items.pub_date) DESC 
     LIMIT ?
   `),
   getByFeed: db.prepare(`
@@ -62,7 +62,7 @@ const itemQueries = {
     FROM items 
     JOIN feeds ON items.feed_id = feeds.id 
     WHERE items.feed_id = ? 
-    ORDER BY items.pub_date DESC 
+    ORDER BY datetime(items.pub_date) DESC 
     LIMIT ?
   `),
   upsert: db.prepare(`

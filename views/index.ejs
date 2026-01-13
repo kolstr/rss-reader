@@ -88,7 +88,7 @@
     
     <!-- Main content -->
     <main class="flex-1 overflow-y-auto w-full md:w-auto">
-      <div class="max-w-4xl mx-auto p-6 pt-20 md:pt-6">
+      <div class="max-w-4xl mx-auto p-6 pt-20 md:pt-6 pb-8">
         <!-- Header -->
         <div class="mb-6">
           <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
@@ -125,7 +125,7 @@
                     <% } %>
                     <span class="text-xs text-gray-500 dark:text-gray-400 font-medium"><%= item.feed_title %></span>
                     <span class="mx-2 text-gray-300 dark:text-gray-600">•</span>
-                    <time class="text-xs text-gray-500 dark:text-gray-400"><%= new Date(item.pub_date).toLocaleDateString() %></time>
+                    <time class="text-xs text-gray-500 dark:text-gray-400"><%= new Date(item.pub_date).toLocaleDateString('de-DE') %></time>
                     <% if (!item.read_at) { %>
                       <span class="ml-2 w-2 h-2 rounded-full" style="background-color: <%= item.feed_color %>"></span>
                     <% } %>

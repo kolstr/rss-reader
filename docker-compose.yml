@@ -11,3 +11,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=6789
+      - TZ=Europe/Berlin
+
+      
