@@ -1,6 +1,8 @@
 const axios = require('axios');
 const Jimp = require('jimp');
-const { parseICO } = require('icojs');
+
+// icojs is an ES Module, so we need to import it dynamically
+let parseICO = null;
 
 /**
  * Get favicon URL for a feed URL
@@ -24,6 +26,12 @@ async function extractColorFromImage(imageBuffer, isIco = false) {
     // Convert .ico to PNG first if needed
     if (isIco) {
       try {
+        // Dynamically import icojs if not already loaded
+        if (!parseICO) {
+          const icojs = await import('icojs');
+          parseICO = icojs.parseICO;
+        }
+        
         // Ensure we have a proper ArrayBuffer for icojs
         const arrayBuffer = imageBuffer.buffer.slice(
           imageBuffer.byteOffset,

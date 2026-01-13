@@ -40,10 +40,10 @@ app.get('/', (req, res) => {
   let currentFeed = null;
   
   if (feedId) {
-    items = itemQueries.getByFeed.all(feedId, 100);
+    items = itemQueries.getByFeed.all(feedId);
     currentFeed = feedQueries.getById.get(feedId);
   } else {
-    items = itemQueries.getAll.all(100);
+    items = itemQueries.getAll.all();
   }
   
   res.render('index', {
