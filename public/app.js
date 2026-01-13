@@ -12,6 +12,7 @@ function initShowReadToggle() {
 function toggleShowRead() {
   showRead = !showRead;
   localStorage.setItem('showRead', showRead);
+  document.documentElement.classList.toggle('hide-read', !showRead);
   updateShowReadToggle();
 }
 

@@ -11,6 +11,10 @@
         var isDark = theme === 'dark';
         document.documentElement.classList.toggle('dark', isDark);
 
+        var showRead = localStorage.getItem('showRead');
+        var hideRead = showRead === 'false';
+        document.documentElement.classList.toggle('hide-read', hideRead);
+
         var color = isDark ? '#111827' : '#f9fafb';
         var meta = document.querySelector('meta[name="theme-color"]');
         if (!meta) {

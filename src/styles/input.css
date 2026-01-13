@@ -53,3 +53,8 @@
 .feed-item-container:hover .feed-icon {
   display: none;
 }
+
+/* Prevent flash of read items when showRead=false (applied pre-paint via index.ejs) */
+.hide-read article.feed-border-read {
+  display: none;
+}
