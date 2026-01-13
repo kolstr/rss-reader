@@ -58,3 +58,25 @@
 .hide-read article.feed-border-read {
   display: none;
 }
+
+/* Prevent flash of the Show read toggle state on load */
+.hide-read #showReadToggle {
+  @apply bg-gray-200 dark:bg-gray-600;
+}
+
+.hide-read #showReadToggleThumb {
+  @apply translate-x-0;
+}
+
+/* Prevent flash of item counter when showRead=false */
+#visibleItemsCount .count-unread {
+  display: none;
+}
+
+.hide-read #visibleItemsCount .count-all {
+  display: none;
+}
+
+.hide-read #visibleItemsCount .count-unread {
+  display: inline;
+}

@@ -20,6 +20,8 @@ function updateShowReadToggle() {
   const toggle = document.getElementById('showReadToggle');
   const thumb = document.getElementById('showReadToggleThumb');
   const articles = document.querySelectorAll('article[data-item-id]');
+
+  document.documentElement.classList.toggle('hide-read', !showRead);
   
   if (showRead) {
     // Show all items (read + unread)
@@ -34,7 +36,12 @@ function updateShowReadToggle() {
     });
     
     const countEl = document.getElementById('visibleItemsCount');
-    if (countEl) countEl.textContent = articles.length;
+    if (countEl) {
+      const allEl = countEl.querySelector('.count-all');
+      const unreadEl = countEl.querySelector('.count-unread');
+      if (allEl) allEl.textContent = articles.length;
+      if (unreadEl) unreadEl.textContent = articles.length;
+    }
   } else {
     // Hide read items (show only unread)
     toggle?.classList.remove('bg-blue-500', 'dark:bg-blue-600');
@@ -55,7 +62,12 @@ function updateShowReadToggle() {
     });
     
     const countEl = document.getElementById('visibleItemsCount');
-    if (countEl) countEl.textContent = visibleCount;
+    if (countEl) {
+      const allEl = countEl.querySelector('.count-all');
+      const unreadEl = countEl.querySelector('.count-unread');
+      if (allEl) allEl.textContent = articles.length;
+      if (unreadEl) unreadEl.textContent = visibleCount;
+    }
   }
 
   updateMarkRemainingButtonVisibility();
