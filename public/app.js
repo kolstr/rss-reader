@@ -537,6 +537,75 @@ function markAsRead(itemId, event) {
     .catch(err => console.error('Error marking as read:', err));
 }
 
+// Auto-mark as read on scroll out of view
+let readObserver = null;
+const observedUnreadItems = new Set();
+
+function initAutoMarkAsRead() {
+  // Cleanup existing observer
+  if (readObserver) {
+    readObserver.disconnect();
+    observedUnreadItems.clear();
+  }
+  
+  // Create intersection observer
+  readObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const article = entry.target;
+      const itemId = article.getAttribute('data-item-id');
+      const isUnread = article.classList.contains('feed-border-unread');
+      
+      if (!isUnread || !itemId) return;
+      
+      // When the item enters the viewport, mark it for observation
+      if (entry.isIntersecting) {
+        observedUnreadItems.add(itemId);
+      } 
+      // When the item exits the viewport and was previously visible, mark as read
+      else if (observedUnreadItems.has(itemId)) {
+        observedUnreadItems.delete(itemId);
+        
+        // Mark as read
+        const feedId = article.getAttribute('data-feed-id');
+        fetch(`/api/items/${itemId}/read`, { method: 'POST' })
+          .then(() => {
+            article.classList.remove('feed-border-unread');
+            article.classList.add('feed-border-read');
+            article.style.borderLeftColor = '';
+            
+            const unreadDot = article.querySelector('.w-2.h-2.rounded-full');
+            if (unreadDot) {
+              unreadDot.remove();
+              if (feedId) {
+                updateUnreadCounts(feedId, false);
+              }
+            }
+            
+            // Update button text if exists
+            const button = article.querySelector('button');
+            if (button) {
+              button.textContent = 'Mark Unread';
+              button.setAttribute('onclick', `toggleRead(${itemId}, false)`);
+            }
+          })
+          .catch(err => console.error('Error auto-marking as read:', err));
+      }
+    });
+  }, {
+    root: null, // viewport
+    threshold: 0, // trigger when any part leaves viewport
+    rootMargin: '0px'
+  });
+  
+  // Observe all unread articles
+  document.querySelectorAll('article.feed-border-unread').forEach(article => {
+    readObserver.observe(article);
+  });
+}
+
+// Initialize on page load
+initAutoMarkAsRead();
+
 // Close modal on background click (only for confirm and alert modals)
 document.getElementById('confirmModal')?.addEventListener('click', (e) => {
   if (e.target.id === 'confirmModal') {
