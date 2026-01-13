@@ -166,6 +166,55 @@ function openSettingsModal() {
   document.getElementById('feedId').value = '';
   document.getElementById('deleteFeedBtn').classList.add('hidden');
   document.getElementById('settingsModal').classList.remove('hidden');
+  
+  // Set up URL change listener for auto-fetch
+  setupUrlAutoFetch();
+}
+
+// Auto-fetch feed metadata when URL is entered
+let urlFetchTimeout = null;
+function setupUrlAutoFetch() {
+  const urlInput = document.getElementById('feedUrl');
+  const titleInput = document.getElementById('feedTitle');
+  const iconInput = document.getElementById('feedIcon');
+  const colorInput = document.getElementById('feedColor');
+  
+  // Remove old listener if exists
+  const newUrlInput = urlInput.cloneNode(true);
+  urlInput.parentNode.replaceChild(newUrlInput, urlInput);
+  
+  newUrlInput.addEventListener('blur', async () => {
+    const url = newUrlInput.value.trim();
+    
+    // Skip if editing existing feed or no URL
+    if (currentFeedId || !url) return;
+    
+    // Skip if title is already filled
+    if (titleInput.value.trim()) return;
+    
+    try {
+      // Validate URL format
+      new URL(url);
+      
+      const response = await fetch('/api/feeds/fetch-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedUrl: url }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          titleInput.value = result.title || '';
+          iconInput.value = result.iconUrl || '';
+          colorInput.value = result.color || '#3b82f6';
+        }
+      }
+    } catch (error) {
+      // Silently fail - user can enter manually
+      console.log('Could not fetch feed metadata:', error.message);
+    }
+  });
 }
 
 function editFeed(id, title, url, iconUrl, color) {
@@ -178,6 +227,9 @@ function editFeed(id, title, url, iconUrl, color) {
   document.getElementById('feedColor').value = color;
   document.getElementById('deleteFeedBtn').classList.remove('hidden');
   document.getElementById('settingsModal').classList.remove('hidden');
+  
+  // Set up URL change listener for auto-fetch (though currentFeedId will prevent auto-fill)
+  setupUrlAutoFetch();
 }
 
 function closeSettingsModal() {

@@ -184,19 +184,19 @@
           <input type="hidden" id="feedId" name="feedId">
           
           <div>
-            <label for="feedTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
-            <input type="text" id="feedTitle" name="title" required 
-                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-          </div>
-          
-          <div>
             <label for="feedUrl" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Feed URL
-              <span class="text-xs text-gray-500 dark:text-gray-400">- Icon auto-detected</span>
             </label>
             <input type="url" id="feedUrl" name="url" required 
                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                    placeholder="https://example.com/feed.xml">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Title, icon and color will be auto-detected</p>
+          </div>
+          
+          <div>
+            <label for="feedTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+            <input type="text" id="feedTitle" name="title" required 
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
           
           <div>

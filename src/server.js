@@ -62,6 +62,33 @@ app.get('/api/feeds', (req, res) => {
   res.json({ feeds, unreadCounts });
 });
 
+// API: Fetch feed metadata from URL
+app.post('/api/feeds/fetch-metadata', async (req, res) => {
+  const { feedUrl } = req.body;
+  
+  if (!feedUrl) {
+    return res.status(400).json({ error: 'Feed URL is required' });
+  }
+  
+  try {
+    const Parser = require('rss-parser');
+    const parser = new Parser();
+    const feed = await parser.parseURL(feedUrl);
+    
+    // Also detect icon and color
+    const iconResult = await detectIconAndColor(feedUrl);
+    
+    res.json({
+      success: true,
+      title: feed.title || '',
+      iconUrl: iconResult.iconUrl || '',
+      color: iconResult.color || '#3b82f6'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // API: Detect icon and color from feed URL
 app.post('/api/feeds/detect-icon', async (req, res) => {
   const { feedUrl } = req.body;

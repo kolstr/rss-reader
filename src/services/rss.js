@@ -1,6 +1,30 @@
 const Parser = require('rss-parser');
 const { itemQueries } = require('../db');
 
+/**
+ * Normalize date to ISO format for consistent database storage and sorting
+ * @param {string} dateStr - Date string in various formats
+ * @returns {string} ISO 8601 formatted date string
+ */
+function normalizeDate(dateStr) {
+  if (!dateStr) {
+    return new Date().toISOString();
+  }
+  
+  try {
+    const date = new Date(dateStr);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.log(`Invalid date: ${dateStr}, using current time`);
+      return new Date().toISOString();
+    }
+    return date.toISOString();
+  } catch (e) {
+    console.log(`Error parsing date: ${dateStr}, using current time`);
+    return new Date().toISOString();
+  }
+}
+
 const parser = new Parser({
   customFields: {
     item: [
@@ -87,7 +111,8 @@ async function refreshFeed(feedId, feedUrl) {
   for (const item of result.items) {
     const guid = item.guid || item.link || item.title;
     const imageUrl = extractImageUrl(item);
-    const pubDate = item.pubDate || item.isoDate || new Date().toISOString();
+    // Normalize date to ISO format for consistent sorting
+    const pubDate = normalizeDate(item.isoDate || item.pubDate);
     
     try {
       const info = itemQueries.upsert.run(
