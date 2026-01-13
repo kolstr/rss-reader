@@ -56,6 +56,8 @@ function updateShowReadToggle() {
     const countEl = document.getElementById('visibleItemsCount');
     if (countEl) countEl.textContent = visibleCount;
   }
+
+  updateMarkRemainingButtonVisibility();
 }
 
 // Custom alert modal
@@ -197,18 +199,34 @@ function toggleDarkMode() {
 }
 
 // Initialize dark mode on page load
-initDarkMode();
-
-// Initialize show read toggle on page load
-initShowReadToggle();
+// (Initialization moved to bottom of file so helper functions are defined first)
 
 // Sidebar management for mobile
+function updateMobileMenuButtonIcon() {
+  const sidebar = document.getElementById('sidebar');
+  const hamburger = document.getElementById('mobileMenuHamburger');
+  const openIcon = document.getElementById('mobileMenuOpenIcon');
+
+  if (!sidebar || !hamburger || !openIcon) return;
+  const isOpen = !sidebar.classList.contains('-translate-x-full');
+
+  if (isOpen) {
+    hamburger.classList.add('hidden');
+    openIcon.classList.remove('hidden');
+  } else {
+    openIcon.classList.add('hidden');
+    hamburger.classList.remove('hidden');
+  }
+}
+
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
   
   sidebar.classList.toggle('-translate-x-full');
   overlay.classList.toggle('hidden');
+
+  updateMobileMenuButtonIcon();
 }
 
 // Close sidebar when clicking a feed link on mobile
@@ -572,6 +590,295 @@ async function toggleRead(itemId, markAsRead) {
   }
 }
 
+// Auto-mark-as-read when items scroll out of view
+const autoReadState = {
+  seenArticles: new Set(),
+  pendingItemIds: new Set(),
+  observer: null,
+  scrollRoot: null,
+  scrollListenerAttached: false,
+};
+
+let markRemainingButton = null;
+
+function ensureMarkRemainingButton() {
+  if (markRemainingButton) return markRemainingButton;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.id = 'markRemainingBtn';
+  button.className = 'hidden fixed bottom-4 right-4 z-40 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition shadow-lg';
+  button.textContent = 'Mark remaining as read';
+  button.addEventListener('click', async () => {
+    await markRemainingVisibleAsRead();
+  });
+  document.body.appendChild(button);
+  markRemainingButton = button;
+  return button;
+}
+
+function getScrollMetrics() {
+  const root = autoReadState.scrollRoot;
+  if (root) {
+    return {
+      atBottom: root.scrollTop + root.clientHeight >= root.scrollHeight - 2,
+    };
+  }
+
+  const docEl = document.documentElement;
+  // Use documentElement metrics to avoid issues across browsers
+  const scrollTop = docEl.scrollTop;
+  const clientHeight = docEl.clientHeight;
+  const scrollHeight = docEl.scrollHeight;
+  return {
+    atBottom: scrollTop + clientHeight >= scrollHeight - 2,
+  };
+}
+
+function getRemainingVisibleUnreadArticles() {
+  const unread = Array.from(document.querySelectorAll('article.feed-border-unread[data-item-id]'));
+  return unread.filter(article => {
+    if (article.style.display === 'none') return false;
+    // Prefer observer-based visibility flag when available
+    if (article.dataset.autoReadVisible === '1') return true;
+
+    // Fallback: simple geometry check
+    const rect = article.getBoundingClientRect();
+    const root = autoReadState.scrollRoot;
+    if (root) {
+      const rootRect = root.getBoundingClientRect();
+      return rect.bottom > rootRect.top && rect.top < rootRect.bottom;
+    }
+    return rect.bottom > 0 && rect.top < window.innerHeight;
+  });
+}
+
+async function markRemainingVisibleAsRead() {
+  const visibleUnreadArticles = getRemainingVisibleUnreadArticles();
+  if (visibleUnreadArticles.length === 0) {
+    updateMarkRemainingButtonVisibility();
+    return;
+  }
+
+  const itemIds = visibleUnreadArticles
+    .map(a => a.getAttribute('data-item-id'))
+    .filter(Boolean);
+  if (itemIds.length === 0) return;
+
+  const button = ensureMarkRemainingButton();
+  button.disabled = true;
+  button.textContent = 'Marking...';
+
+  try {
+    const response = await fetch('/api/items/bulk-read', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ itemIds }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to mark items as read');
+    }
+
+    visibleUnreadArticles.forEach(article => {
+      if (isArticleUnread(article)) {
+        applyReadUI(article);
+      }
+    });
+  } catch (error) {
+    console.error('Error marking remaining as read:', error);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Mark remaining as read';
+    updateMarkRemainingButtonVisibility();
+  }
+}
+
+function updateMarkRemainingButtonVisibility() {
+  // Only show when: user is at the bottom AND there are unread items still visible.
+  const button = ensureMarkRemainingButton();
+  const { atBottom } = getScrollMetrics();
+  const remainingVisibleUnread = getRemainingVisibleUnreadArticles();
+
+  if (atBottom && remainingVisibleUnread.length > 0) {
+    button.classList.remove('hidden');
+  } else {
+    button.classList.add('hidden');
+  }
+}
+
+function getScrollRootElement() {
+  const main = document.querySelector('main');
+  if (!main) return null;
+  const style = window.getComputedStyle(main);
+  const overflowY = style.overflowY;
+  const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && main.scrollHeight > main.clientHeight;
+  return isScrollable ? main : null;
+}
+
+function isArticleUnread(article) {
+  return !!article && article.classList.contains('feed-border-unread');
+}
+
+function updateArticleReadButton(article, itemId, isRead) {
+  const button = article.querySelector('button');
+  if (!button) return;
+  button.textContent = isRead ? 'Mark Unread' : 'Mark Read';
+  button.setAttribute('onclick', `toggleRead(${itemId}, ${!isRead})`);
+}
+
+function applyReadUI(article) {
+  const itemId = article.getAttribute('data-item-id');
+  const feedId = article.getAttribute('data-feed-id');
+
+  article.classList.remove('feed-border-unread');
+  article.classList.add('feed-border-read');
+  article.style.borderLeftColor = '';
+
+  const unreadDot = article.querySelector('.w-2.h-2.rounded-full');
+  if (unreadDot) {
+    unreadDot.remove();
+  }
+
+  if (feedId) {
+    updateUnreadCounts(feedId);
+  }
+
+  if (itemId) {
+    updateArticleReadButton(article, itemId, true);
+  }
+
+  updateShowReadToggle();
+}
+
+function markAsReadByAutoScroll(article) {
+  const itemId = article.getAttribute('data-item-id');
+  if (!itemId) return;
+  if (!isArticleUnread(article)) return;
+  if (autoReadState.pendingItemIds.has(itemId)) return;
+
+  autoReadState.pendingItemIds.add(itemId);
+  fetch(`/api/items/${itemId}/read`, { method: 'POST' })
+    .then(() => {
+      if (isArticleUnread(article)) {
+        applyReadUI(article);
+      }
+    })
+    .catch(err => console.error('Error marking as read:', err))
+    .finally(() => {
+      autoReadState.pendingItemIds.delete(itemId);
+      autoReadState.seenArticles.delete(article);
+    });
+}
+
+function checkForScrolledPastUnread() {
+  const root = autoReadState.scrollRoot;
+  const rootTop = root ? root.getBoundingClientRect().top : 0;
+  const pastTopMargin = 8;
+
+  for (const article of Array.from(autoReadState.seenArticles)) {
+    if (!article || !document.body.contains(article) || !isArticleUnread(article)) {
+      autoReadState.seenArticles.delete(article);
+      continue;
+    }
+
+    if (article.style.display === 'none') {
+      autoReadState.seenArticles.delete(article);
+      continue;
+    }
+
+    const rect = article.getBoundingClientRect();
+    const fullyAboveRoot = rect.bottom < rootTop + pastTopMargin;
+    if (fullyAboveRoot) {
+      markAsReadByAutoScroll(article);
+    }
+  }
+}
+
+function setupAutoMarkAsReadOnScroll() {
+  const articles = document.querySelectorAll('article[data-item-id]');
+  if (articles.length === 0) return;
+
+  const nextRoot = getScrollRootElement();
+  if (autoReadState.scrollRoot !== nextRoot) {
+    autoReadState.scrollRoot = nextRoot;
+    if (autoReadState.observer) {
+      autoReadState.observer.disconnect();
+      autoReadState.observer = null;
+    }
+  }
+
+  if (!autoReadState.observer) {
+    autoReadState.observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const article = entry.target;
+
+          // Track current visibility for the "mark remaining" button.
+          if (entry.isIntersecting && entry.intersectionRatio > 0) {
+            article.dataset.autoReadVisible = '1';
+          } else {
+            delete article.dataset.autoReadVisible;
+          }
+
+          if (!isArticleUnread(article)) {
+            autoReadState.seenArticles.delete(article);
+            continue;
+          }
+
+          if (entry.isIntersecting && entry.intersectionRatio > 0) {
+            autoReadState.seenArticles.add(article);
+          } else {
+            // If it's no longer intersecting, a scroll may have happened. Use geometry to decide.
+            if (autoReadState.seenArticles.has(article)) {
+              const rootTop = entry.rootBounds ? entry.rootBounds.top : 0;
+              const pastTopMargin = 8;
+              if (entry.boundingClientRect.bottom < rootTop + pastTopMargin) {
+                markAsReadByAutoScroll(article);
+              }
+            }
+          }
+        }
+
+        updateMarkRemainingButtonVisibility();
+      },
+      { root: autoReadState.scrollRoot, threshold: 0 }
+    );
+  }
+
+  // Observe all articles (safe to call multiple times; observer ignores duplicates)
+  articles.forEach(article => autoReadState.observer.observe(article));
+
+  if (!autoReadState.scrollListenerAttached) {
+    autoReadState.scrollListenerAttached = true;
+    let scheduled = false;
+
+    const scheduleCheck = () => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        checkForScrolledPastUnread();
+        updateMarkRemainingButtonVisibility();
+      });
+    };
+
+    // Attach to both: window (document scroll on mobile) and main (scroll container on desktop)
+    window.addEventListener('scroll', scheduleCheck, { passive: true });
+    const main = document.querySelector('main');
+    main?.addEventListener('scroll', scheduleCheck, { passive: true });
+    window.addEventListener('resize', scheduleCheck, { passive: true });
+    document.addEventListener('visibilitychange', () => {
+      // If the tab was backgrounded during scrolling, reconcile state when visible again.
+      if (!document.hidden) scheduleCheck();
+    });
+
+    // Initial visibility calculation
+    scheduleCheck();
+  }
+}
+
 // Mark as read when clicking link
 function markAsRead(itemId, event) {
   // Don't prevent default - let link open
@@ -594,6 +901,8 @@ function markAsRead(itemId, event) {
             updateUnreadCounts(feedId);
           }
         }
+
+        updateArticleReadButton(article, itemId, true);
         
         // Update filter display
         updateShowReadToggle();
@@ -687,3 +996,16 @@ document.getElementById('alertModal')?.addEventListener('click', (e) => {
     closeAlertModal();
   }
 });
+
+// Enable auto-mark-as-read on scroll
+setupAutoMarkAsReadOnScroll();
+
+// Initialize UI state (after all helpers are defined)
+initDarkMode();
+initShowReadToggle();
+
+// Keep mobile menu button icon in sync
+updateMobileMenuButtonIcon();
+window.addEventListener('resize', () => {
+  updateMobileMenuButtonIcon();
+}, { passive: true });

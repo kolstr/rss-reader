@@ -15,6 +15,16 @@ function normalizeDate(dateStr) {
     const date = new Date(dateStr);
     // Check if date is valid
     if (isNaN(date.getTime())) {
+      // Node/JS Date parsing is inconsistent for timezone abbreviations (e.g. CET/CEST).
+      // Try converting common abbreviations to numeric offsets and re-parse.
+      const coerced = coerceRssDateTimezone(dateStr);
+      if (coerced) {
+        const retry = new Date(coerced);
+        if (!isNaN(retry.getTime())) {
+          return retry.toISOString();
+        }
+      }
+
       console.log(`Invalid date: ${dateStr}, using current time`);
       return new Date().toISOString();
     }
@@ -25,15 +35,64 @@ function normalizeDate(dateStr) {
   }
 }
 
+function coerceRssDateTimezone(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return null;
+
+  // Common timezone abbreviations found in RSS/Atom feeds.
+  // Prefer numeric offsets for reliable parsing.
+  const tzMap = {
+    UTC: '+0000',
+    GMT: '+0000',
+    CET: '+0100',
+    CEST: '+0200',
+    // German abbreviations
+    MEZ: '+0100',
+    MESZ: '+0200',
+  };
+
+  // Example: "Tue, 13 Jan 2026 19:33:16 CET" -> "Tue, 13 Jan 2026 19:33:16 +0100"
+  const match = dateStr.match(/\b([A-Z]{2,5})\b\s*$/);
+  if (!match) return null;
+  const tz = match[1];
+  const offset = tzMap[tz];
+  if (!offset) return null;
+
+  return dateStr.replace(/\b([A-Z]{2,5})\b\s*$/, offset);
+}
+
 const parser = new Parser({
   customFields: {
     item: [
       ['media:content', 'media:content'],
       ['media:thumbnail', 'media:thumbnail'],
       ['enclosure', 'enclosure'],
+      // Some feeds (especially Atom) provide update timestamps in namespaced tags
+      ['a10:updated', 'a10:updated'],
     ]
   }
 });
+
+function getFirstTextValue(value) {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+
+  // rss-parser sometimes returns arrays/objects depending on tag structure
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      const asText = getFirstTextValue(entry);
+      if (asText) return asText;
+    }
+    return null;
+  }
+
+  if (typeof value === 'object') {
+    // Common shapes: { _: 'text' } or { '#': 'text' }
+    if (typeof value._ === 'string') return value._;
+    if (typeof value['#'] === 'string') return value['#'];
+  }
+
+  return null;
+}
 
 /**
  * Extract image URL from RSS item
@@ -112,7 +171,12 @@ async function refreshFeed(feedId, feedUrl) {
     const guid = item.guid || item.link || item.title;
     const imageUrl = extractImageUrl(item);
     // Normalize date to ISO format for consistent sorting
-    const pubDate = normalizeDate(item.isoDate || item.pubDate);
+    // Fallbacks for feeds that don't provide pubDate (e.g. Atom: <a10:updated>)
+    const updatedFallback =
+      getFirstTextValue(item['a10:updated']) ||
+      getFirstTextValue(item.updated) ||
+      getFirstTextValue(item['atom:updated']);
+    const pubDate = normalizeDate(item.isoDate || item.pubDate || updatedFallback);
     
     try {
       const info = itemQueries.upsert.run(
