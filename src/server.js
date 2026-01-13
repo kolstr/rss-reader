@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cron = require('node-cron');
-const { feedQueries, itemQueries, statsQueries } = require('./db');
+const { db, feedQueries, itemQueries, statsQueries } = require('./db');
 const { refreshFeed, refreshAllFeeds, getFaviconUrl } = require('./services/rss');
 const { detectIconAndColor } = require('./services/iconDetector');
 
@@ -255,6 +255,23 @@ app.post('/api/items/:id/unread', (req, res) => {
   try {
     itemQueries.markUnread.run(id);
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Mark multiple items as read
+app.post('/api/items/bulk-read', (req, res) => {
+  const { itemIds } = req.body;
+  
+  if (!Array.isArray(itemIds) || itemIds.length === 0) {
+    return res.status(400).json({ error: 'itemIds must be a non-empty array' });
+  }
+  
+  try {
+    const markMultiple = db.prepare(`UPDATE items SET read_at = CURRENT_TIMESTAMP WHERE id IN (${itemIds.map(() => '?').join(',')})`);
+    markMultiple.run(...itemIds);
+    res.json({ success: true, count: itemIds.length });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

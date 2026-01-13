@@ -2,44 +2,45 @@
 let currentFeedId = null;
 let confirmCallback = null;
 
-// Auto-mark as read on scroll out of view
-let readObserver = null;
-const observedUnreadItems = new Set();
+// Show read toggle management
+let showRead = localStorage.getItem('showRead') !== 'false'; // default true
 
-// Unread filter management
-let showOnlyUnread = localStorage.getItem('showOnlyUnread') === 'true';
-
-function initUnreadFilter() {
-  updateUnreadFilter();
+function initShowReadToggle() {
+  updateShowReadToggle();
 }
 
-function toggleUnreadFilter() {
-  showOnlyUnread = !showOnlyUnread;
-  localStorage.setItem('showOnlyUnread', showOnlyUnread);
-  updateUnreadFilter();
+function toggleShowRead() {
+  showRead = !showRead;
+  localStorage.setItem('showRead', showRead);
+  updateShowReadToggle();
 }
 
-function updateUnreadFilter() {
-  const toggleBtn = document.getElementById('unreadToggle');
-  const toggleText = document.getElementById('unreadToggleText');
-  const toggleIcon = document.getElementById('unreadToggleIcon');
+function updateShowReadToggle() {
+  const toggle = document.getElementById('showReadToggle');
+  const thumb = document.getElementById('showReadToggleThumb');
   const articles = document.querySelectorAll('article[data-item-id]');
   
-  // Temporarily pause the observer during filter changes
-  if (readObserver) {
-    readObserver.disconnect();
-  }
-  
-  if (showOnlyUnread) {
-    // Show only unread items
-    toggleText.textContent = 'Show All';
-    toggleBtn?.classList.add('bg-blue-500', 'hover:bg-blue-600', 'text-white', 'dark:bg-blue-600', 'dark:hover:bg-blue-700');
-    toggleBtn?.classList.remove('bg-gray-100', 'hover:bg-gray-200', 'dark:bg-gray-700', 'dark:hover:bg-gray-600', 'text-gray-700', 'dark:text-gray-200');
+  if (showRead) {
+    // Show all items (read + unread)
+    toggle?.classList.add('bg-blue-500', 'dark:bg-blue-600');
+    toggle?.classList.remove('bg-gray-200', 'dark:bg-gray-600');
+    toggle?.setAttribute('aria-checked', 'true');
+    thumb?.classList.add('translate-x-5');
+    thumb?.classList.remove('translate-x-0');
     
-    // Eye-off icon
-    if (toggleIcon) {
-      toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>';
-    }
+    articles.forEach(article => {
+      article.style.display = '';
+    });
+    
+    const countEl = document.getElementById('visibleItemsCount');
+    if (countEl) countEl.textContent = articles.length;
+  } else {
+    // Hide read items (show only unread)
+    toggle?.classList.remove('bg-blue-500', 'dark:bg-blue-600');
+    toggle?.classList.add('bg-gray-200', 'dark:bg-gray-600');
+    toggle?.setAttribute('aria-checked', 'false');
+    thumb?.classList.remove('translate-x-5');
+    thumb?.classList.add('translate-x-0');
     
     let visibleCount = 0;
     articles.forEach(article => {
@@ -54,36 +55,7 @@ function updateUnreadFilter() {
     
     const countEl = document.getElementById('visibleItemsCount');
     if (countEl) countEl.textContent = visibleCount;
-  } else {
-    // Show all items
-    toggleText.textContent = 'Show Unread';
-    toggleBtn?.classList.remove('bg-blue-500', 'hover:bg-blue-600', 'text-white', 'dark:bg-blue-600', 'dark:hover:bg-blue-700');
-    toggleBtn?.classList.add('bg-gray-100', 'hover:bg-gray-200', 'dark:bg-gray-700', 'dark:hover:bg-gray-600', 'text-gray-700', 'dark:text-gray-200');
-    
-    // Eye icon
-    if (toggleIcon) {
-      toggleIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>';
-    }
-    
-    articles.forEach(article => {
-      article.style.display = '';
-    });
-    
-    const countEl = document.getElementById('visibleItemsCount');
-    if (countEl) countEl.textContent = articles.length;
   }
-  
-  // Resume the observer after a short delay to let DOM settle
-  setTimeout(() => {
-    if (readObserver) {
-      observedUnreadItems.clear();
-      document.querySelectorAll('article.feed-border-unread').forEach(article => {
-        if (article.style.display !== 'none') {
-          readObserver.observe(article);
-        }
-      });
-    }
-  }, 100);
 }
 
 // Custom alert modal
@@ -227,8 +199,8 @@ function toggleDarkMode() {
 // Initialize dark mode on page load
 initDarkMode();
 
-// Initialize unread filter on page load
-initUnreadFilter();
+// Initialize show read toggle on page load
+initShowReadToggle();
 
 // Sidebar management for mobile
 function toggleSidebar() {
@@ -592,7 +564,7 @@ async function toggleRead(itemId, markAsRead) {
         }
         
         // Update filter display
-        updateUnreadFilter();
+        updateShowReadToggle();
       }
     }
   } catch (error) {
@@ -624,79 +596,84 @@ function markAsRead(itemId, event) {
         }
         
         // Update filter display
-        updateUnreadFilter();
+        updateShowReadToggle();
       }
     })
     .catch(err => console.error('Error marking as read:', err));
 }
 
-function initAutoMarkAsRead() {
-  // Cleanup existing observer
-  if (readObserver) {
-    readObserver.disconnect();
-    observedUnreadItems.clear();
+// Mark all visible unread items as read
+async function markAllAsRead() {
+  const button = document.getElementById('markAllBtn');
+  if (!button) return;
+  
+  // Get ALL unread items (not just visible ones)
+  const unreadArticles = Array.from(document.querySelectorAll('article.feed-border-unread'));
+  
+  if (unreadArticles.length === 0) {
+    return;
   }
   
-  // Create intersection observer
-  readObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const article = entry.target;
+  const itemIds = unreadArticles.map(article => article.getAttribute('data-item-id'));
+  
+  // Disable button during operation
+  button.disabled = true;
+  button.textContent = 'Marking...';
+  
+  try {
+    const response = await fetch('/api/items/bulk-read', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ itemIds }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to mark items as read');
+    }
+    
+    const result = await response.json();
+    
+    // Update UI for all marked items
+    unreadArticles.forEach(article => {
       const itemId = article.getAttribute('data-item-id');
-      const isUnread = article.classList.contains('feed-border-unread');
+      const feedId = article.getAttribute('data-feed-id');
       
-      if (!isUnread || !itemId) return;
+      article.classList.remove('feed-border-unread');
+      article.classList.add('feed-border-read');
+      article.style.borderLeftColor = '';
       
-      // When the item enters the viewport, mark it for observation
-      if (entry.isIntersecting) {
-        observedUnreadItems.add(itemId);
-      } 
-      // When the item exits the viewport and was previously visible, mark as read
-      else if (observedUnreadItems.has(itemId)) {
-        observedUnreadItems.delete(itemId);
-        
-        // Mark as read
-        const feedId = article.getAttribute('data-feed-id');
-        fetch(`/api/items/${itemId}/read`, { method: 'POST' })
-          .then(() => {
-            article.classList.remove('feed-border-unread');
-            article.classList.add('feed-border-read');
-            article.style.borderLeftColor = '';
-            
-            const unreadDot = article.querySelector('.w-2.h-2.rounded-full');
-            if (unreadDot) {
-              unreadDot.remove();
-              if (feedId) {
-                updateUnreadCounts(feedId, false);
-              }
-            }
-            
-            // Update button text if exists
-            const button = article.querySelector('button');
-            if (button) {
-              button.textContent = 'Mark Unread';
-              button.setAttribute('onclick', `toggleRead(${itemId}, false)`);
-            }
-            
-            // Update filter display
-            updateUnreadFilter();
-          })
-          .catch(err => console.error('Error auto-marking as read:', err));
+      const unreadDot = article.querySelector('.w-2.h-2.rounded-full');
+      if (unreadDot) {
+        unreadDot.remove();
+      }
+      
+      // Update button text
+      const toggleButton = article.querySelector('button');
+      if (toggleButton) {
+        toggleButton.textContent = 'Mark Unread';
+        toggleButton.setAttribute('onclick', `toggleRead(${itemId}, false)`);
+      }
+      
+      // Update unread counts
+      if (feedId) {
+        updateUnreadCounts(feedId, false);
       }
     });
-  }, {
-    root: null, // viewport
-    threshold: 0, // trigger when any part leaves viewport
-    rootMargin: '0px'
-  });
-  
-  // Observe all unread articles
-  document.querySelectorAll('article.feed-border-unread').forEach(article => {
-    readObserver.observe(article);
-  });
+    
+    // Update filter display
+    updateShowReadToggle();
+    
+    // Re-enable button
+    button.disabled = false;
+    button.textContent = 'Mark all as read';
+  } catch (error) {
+    console.error('Error marking items as read:', error);
+    button.disabled = false;
+    button.textContent = 'Mark all as read';
+  }
 }
-
-// Initialize on page load
-initAutoMarkAsRead();
 
 // Close modal on background click (only for confirm and alert modals)
 document.getElementById('confirmModal')?.addEventListener('click', (e) => {
