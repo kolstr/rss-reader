@@ -4,10 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RSS Reader</title>
+  <script>
+    (function () {
+      try {
+        var theme = localStorage.getItem('theme') || 'light';
+        var isDark = theme === 'dark';
+        document.documentElement.classList.toggle('dark', isDark);
+
+        var color = isDark ? '#111827' : '#f9fafb';
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('name', 'theme-color');
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', color);
+      } catch (e) {
+        // ignore
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="/styles.css">
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#3b82f6">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111827">
   <link rel="icon" type="image/png" href="assets/192.png">  
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 min-h-screen md:h-screen md:overflow-hidden">

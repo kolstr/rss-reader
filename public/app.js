@@ -191,11 +191,21 @@ function updateThemeIcons() {
   }
 }
 
+function updateThemeColorMeta() {
+  const isDark = document.documentElement.classList.contains('dark');
+  const color = isDark ? '#111827' : '#f9fafb';
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    meta.setAttribute('content', color);
+  }
+}
+
 function toggleDarkMode() {
   document.documentElement.classList.toggle('dark');
   const isDark = document.documentElement.classList.contains('dark');
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
   updateThemeIcons();
+  updateThemeColorMeta();
 }
 
 // Initialize dark mode on page load
