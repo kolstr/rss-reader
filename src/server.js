@@ -285,6 +285,13 @@ cron.schedule('*/30 * * * *', async () => {
     const results = await refreshAllFeeds(feeds);
     const totalNew = results.reduce((sum, r) => sum + (r.newItems || 0), 0);
     console.log(`Feed refresh complete. ${totalNew} new items found.`);
+    
+    // Delete items older than 7 days
+    const sevenDaysAgo = Math.floor(Date.now() / 1000) - (7 * 24 * 60 * 60);
+    const deleteResult = itemQueries.deleteOlderThan.run(sevenDaysAgo);
+    if (deleteResult.changes > 0) {
+      console.log(`Deleted ${deleteResult.changes} items older than 7 days.`);
+    }
   } catch (error) {
     console.error('Error during scheduled refresh:', error);
   }
