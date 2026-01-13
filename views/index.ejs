@@ -148,7 +148,7 @@
                     <% } %>
                     <span class="text-xs text-gray-500 dark:text-gray-400 font-medium"><%= item.feed_title %></span>
                     <span class="mx-2 text-gray-300 dark:text-gray-600">•</span>
-                    <time class="text-xs text-gray-500 dark:text-gray-400"><%= new Date(item.pub_date).toLocaleDateString('de-DE') %></time>
+                    <time class="text-xs text-gray-500 dark:text-gray-400"><%= new Date(item.pub_date).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) %></time>
                     <% if (!item.read_at) { %>
                       <span class="ml-2 w-2 h-2 rounded-full" style="background-color: <%= item.feed_color %>"></span>
                     <% } %>
