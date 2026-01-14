@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cron = require('node-cron');
-const { db, feedQueries, itemQueries, statsQueries } = require('./db');
+const { db, feedQueries, itemQueries, statsQueries, filterKeywordQueries } = require('./db');
 const { refreshFeed, refreshAllFeeds, getFaviconUrl } = require('./services/rss');
 const { detectIconAndColor } = require('./services/iconDetector');
 
@@ -272,6 +272,48 @@ app.post('/api/items/bulk-read', (req, res) => {
     const markMultiple = db.prepare(`UPDATE items SET read_at = CURRENT_TIMESTAMP WHERE id IN (${itemIds.map(() => '?').join(',')})`);
     markMultiple.run(...itemIds);
     res.json({ success: true, count: itemIds.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Get all filter keywords
+app.get('/api/filter-keywords', (req, res) => {
+  try {
+    const keywords = filterKeywordQueries.getAll.all();
+    res.json({ success: true, keywords });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Add a filter keyword
+app.post('/api/filter-keywords', (req, res) => {
+  const { keyword } = req.body;
+  
+  if (!keyword || typeof keyword !== 'string' || keyword.trim() === '') {
+    return res.status(400).json({ error: 'Keyword is required' });
+  }
+  
+  try {
+    const result = filterKeywordQueries.create.run(keyword.trim().toLowerCase());
+    res.json({ success: true, id: result.lastInsertRowid, keyword: keyword.trim().toLowerCase() });
+  } catch (error) {
+    // Handle duplicate keyword error
+    if (error.message.includes('UNIQUE')) {
+      return res.status(400).json({ error: 'Keyword already exists' });
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Delete a filter keyword
+app.delete('/api/filter-keywords/:id', (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    filterKeywordQueries.delete.run(id);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

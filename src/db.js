@@ -85,9 +85,17 @@ const statsQueries = {
   getUnreadCountByFeed: db.prepare('SELECT COUNT(*) as count FROM items WHERE feed_id = ? AND read_at IS NULL'),
 };
 
+// Filter keyword queries
+const filterKeywordQueries = {
+  getAll: db.prepare('SELECT * FROM filter_keywords ORDER BY keyword'),
+  create: db.prepare('INSERT INTO filter_keywords (keyword) VALUES (?)'),
+  delete: db.prepare('DELETE FROM filter_keywords WHERE id = ?'),
+};
+
 module.exports = {
   db,
   feedQueries,
   itemQueries,
   statsQueries,
+  filterKeywordQueries,
 };

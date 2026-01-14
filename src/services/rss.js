@@ -1,5 +1,5 @@
 const Parser = require('rss-parser');
-const { itemQueries } = require('../db');
+const { itemQueries, filterKeywordQueries } = require('../db');
 
 /**
  * Normalize date to ISO format for consistent database storage and sorting
@@ -165,10 +165,26 @@ async function refreshFeed(feedId, feedUrl) {
     return { success: false, error: result.error };
   }
   
+  // Get filter keywords
+  const filterKeywords = filterKeywordQueries.getAll.all();
+  const keywords = filterKeywords.map(k => k.keyword.toLowerCase());
+  
   let newItems = 0;
+  let filteredItems = 0;
   
   for (const item of result.items) {
     const guid = item.guid || item.link || item.title;
+    const title = item.title || 'Untitled';
+    
+    // Check if title contains any filter keyword (case-insensitive)
+    const titleLower = title.toLowerCase();
+    const isFiltered = keywords.some(keyword => titleLower.includes(keyword));
+    
+    if (isFiltered) {
+      filteredItems++;
+      continue; // Skip this item
+    }
+    
     const imageUrl = extractImageUrl(item);
     // Normalize date to ISO format for consistent sorting
     // Fallbacks for feeds that don't provide pubDate (e.g. Atom: <a10:updated>)
@@ -182,7 +198,7 @@ async function refreshFeed(feedId, feedUrl) {
       const info = itemQueries.upsert.run(
         feedId,
         guid,
-        item.title || 'Untitled',
+        title,
         item.link || '',
         item.contentSnippet || item.description || '',
         imageUrl,
@@ -201,6 +217,7 @@ async function refreshFeed(feedId, feedUrl) {
     success: true,
     itemCount: result.items.length,
     newItems: newItems,
+    filteredItems: filteredItems,
   };
 }
 

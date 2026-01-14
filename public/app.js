@@ -1026,6 +1026,107 @@ document.getElementById('alertModal')?.addEventListener('click', (e) => {
   }
 });
 
+document.getElementById('filterModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'filterModal') {
+    closeFilterModal();
+  }
+});
+
+// Filter Keywords Management
+async function openFilterModal() {
+  document.getElementById('filterModal').classList.remove('hidden');
+  await loadFilterKeywords();
+}
+
+function closeFilterModal() {
+  document.getElementById('filterModal').classList.add('hidden');
+}
+
+async function loadFilterKeywords() {
+  try {
+    const response = await fetch('/api/filter-keywords');
+    const data = await response.json();
+    
+    if (data.success) {
+      const container = document.getElementById('filterKeywordsList');
+      
+      if (data.keywords.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No filter keywords yet</p>';
+      } else {
+        container.innerHTML = data.keywords.map(keyword => `
+          <div class="flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-2 rounded-full text-sm">
+            <span class="flex-1">${escapeHtml(keyword.keyword)}</span>
+            <button onclick="removeFilterKeyword(${keyword.id})" class="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-1 transition" title="Remove keyword">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        `).join('');
+      }
+    }
+  } catch (error) {
+    console.error('Error loading filter keywords:', error);
+    showAlert('Failed to load filter keywords', 'Error', 'error');
+  }
+}
+
+async function addFilterKeyword(event) {
+  event.preventDefault();
+  
+  const input = document.getElementById('filterKeywordInput');
+  const keyword = input.value.trim();
+  
+  if (!keyword) return;
+  
+  try {
+    const response = await fetch('/api/filter-keywords', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ keyword }),
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      input.value = '';
+      await loadFilterKeywords();
+    } else {
+      showAlert(data.error || 'Failed to add keyword', 'Error', 'error');
+    }
+  } catch (error) {
+    console.error('Error adding filter keyword:', error);
+    showAlert('Failed to add keyword', 'Error', 'error');
+  }
+}
+
+async function removeFilterKeyword(id) {
+  try {
+    const response = await fetch(`/api/filter-keywords/${id}`, {
+      method: 'DELETE',
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      await loadFilterKeywords();
+    } else {
+      showAlert('Failed to remove keyword', 'Error', 'error');
+    }
+  } catch (error) {
+    console.error('Error removing filter keyword:', error);
+    showAlert('Failed to remove keyword', 'Error', 'error');
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Enable auto-mark-as-read on scroll
 setupAutoMarkAsReadOnScroll();
 
