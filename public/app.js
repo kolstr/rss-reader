@@ -634,7 +634,7 @@ function ensureMarkRemainingButton() {
   const button = document.createElement('button');
   button.type = 'button';
   button.id = 'markRemainingBtn';
-  button.className = 'hidden fixed bottom-4 right-4 z-40 flex items-center bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white p-3 rounded-full text-sm font-medium transition shadow-lg';
+  button.className = 'hidden fixed bottom-4 md:right-8 right-6 z-40 flex items-center bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white p-3 rounded-full text-sm font-medium transition shadow-lg';
   setMarkRemainingButtonLabel(button, false);
   button.addEventListener('click', async () => {
     await markRemainingVisibleAsRead();
@@ -681,13 +681,14 @@ function getRemainingVisibleUnreadArticles() {
 }
 
 async function markRemainingVisibleAsRead() {
-  const visibleUnreadArticles = getRemainingVisibleUnreadArticles();
-  if (visibleUnreadArticles.length === 0) {
+  // Mark ALL unread articles, not just visible ones
+  const unreadArticles = Array.from(document.querySelectorAll('article.feed-border-unread[data-item-id]'));
+  if (unreadArticles.length === 0) {
     updateMarkRemainingButtonVisibility();
     return;
   }
 
-  const itemIds = visibleUnreadArticles
+  const itemIds = unreadArticles
     .map(a => a.getAttribute('data-item-id'))
     .filter(Boolean);
   if (itemIds.length === 0) return;
@@ -709,7 +710,7 @@ async function markRemainingVisibleAsRead() {
       throw new Error('Failed to mark items as read');
     }
 
-    visibleUnreadArticles.forEach(article => {
+    unreadArticles.forEach(article => {
       if (isArticleUnread(article)) {
         applyReadUI(article);
       }
@@ -724,12 +725,12 @@ async function markRemainingVisibleAsRead() {
 }
 
 function updateMarkRemainingButtonVisibility() {
-  // Only show when: user is at the bottom AND there are unread items still visible.
+  // Only show when: user is at the bottom AND there are any unread items in the DOM.
   const button = ensureMarkRemainingButton();
   const { atBottom } = getScrollMetrics();
-  const remainingVisibleUnread = getRemainingVisibleUnreadArticles();
+  const allUnread = document.querySelectorAll('article.feed-border-unread[data-item-id]');
 
-  if (atBottom && remainingVisibleUnread.length > 0) {
+  if (atBottom && allUnread.length > 0) {
     button.classList.remove('hidden');
   } else {
     button.classList.add('hidden');
