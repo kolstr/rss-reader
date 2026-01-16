@@ -169,12 +169,24 @@ async function refreshFeed(feedId, feedUrl) {
   const filterKeywords = filterKeywordQueries.getAll.all();
   const keywords = filterKeywords.map(k => k.keyword.toLowerCase());
   
+  // Get all existing titles for this feed to avoid duplicates
+  const existingTitles = new Set(
+    itemQueries.getTitlesByFeed.all(feedId).map(row => row.title)
+  );
+  
   let newItems = 0;
   let filteredItems = 0;
+  let duplicateTitles = 0;
   
   for (const item of result.items) {
     const guid = item.guid || item.link || item.title;
     const title = item.title || 'Untitled';
+    
+    // Check if item with exact title already exists
+    if (existingTitles.has(title)) {
+      duplicateTitles++;
+      continue; // Skip this item
+    }
     
     // Check if title contains any filter keyword (case-insensitive)
     const titleLower = title.toLowerCase();
@@ -218,6 +230,7 @@ async function refreshFeed(feedId, feedUrl) {
     itemCount: result.items.length,
     newItems: newItems,
     filteredItems: filteredItems,
+    duplicateTitles: duplicateTitles,
   };
 }
 

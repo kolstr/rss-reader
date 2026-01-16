@@ -77,6 +77,7 @@ const itemQueries = {
   markUnread: db.prepare('UPDATE items SET read_at = NULL WHERE id = ?'),
   deleteByFeed: db.prepare('DELETE FROM items WHERE feed_id = ?'),
   deleteOlderThan: db.prepare('DELETE FROM items WHERE pub_date < datetime(?, \'unixepoch\')'),
+  getTitlesByFeed: db.prepare('SELECT title FROM items WHERE feed_id = ?'),
 };
 
 // Stats queries
