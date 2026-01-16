@@ -337,6 +337,101 @@ function closeSettingsModal() {
   currentFeedId = null;
 }
 
+// Filter modal functions
+async function openFilterModal() {
+  const modal = document.getElementById('filterModal');
+  modal.classList.remove('hidden');
+  await loadFilterKeywords();
+}
+
+function closeFilterModal() {
+  document.getElementById('filterModal').classList.add('hidden');
+  document.getElementById('filterKeywordInput').value = '';
+}
+
+async function loadFilterKeywords() {
+  try {
+    const response = await fetch('/api/filter-keywords');
+    if (!response.ok) {
+      throw new Error('Failed to load filter keywords');
+    }
+    
+    const data = await response.json();
+    const keywords = data.keywords || [];
+    const listEl = document.getElementById('filterKeywordsList');
+    
+    if (keywords.length === 0) {
+      listEl.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 italic">No filter keywords yet</p>';
+      return;
+    }
+    
+    listEl.innerHTML = keywords.map(kw => `
+      <div class="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded">
+        <span class="text-gray-800 dark:text-gray-200">${escapeHtml(kw.keyword)}</span>
+        <button onclick="deleteFilterKeyword(${kw.id})" class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </button>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading filter keywords:', error);
+    showAlert('Failed to load filter keywords', 'Error', 'error');
+  }
+}
+
+async function addFilterKeyword(event) {
+  event.preventDefault();
+  
+  const input = document.getElementById('filterKeywordInput');
+  const keyword = input.value.trim();
+  
+  if (!keyword) return;
+  
+  try {
+    const response = await fetch('/api/filter-keywords', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keyword }),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to add keyword');
+    }
+    
+    input.value = '';
+    await loadFilterKeywords();
+  } catch (error) {
+    console.error('Error adding filter keyword:', error);
+    showAlert(error.message, 'Error', 'error');
+  }
+}
+
+async function deleteFilterKeyword(id) {
+  try {
+    const response = await fetch(`/api/filter-keywords/${id}`, {
+      method: 'DELETE',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to delete keyword');
+    }
+    
+    await loadFilterKeywords();
+  } catch (error) {
+    console.error('Error deleting filter keyword:', error);
+    showAlert('Failed to delete keyword', 'Error', 'error');
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Form submission
 document.getElementById('feedForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -524,7 +619,7 @@ async function deleteFeed() {
 async function refreshAllFeeds() {
   const button = event.target;
   button.disabled = true;
-  button.textContent = 'Refreshing...';
+  button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refreshing...';
   
   try {
     const response = await fetch('/api/feeds/refresh-all', {
@@ -537,12 +632,12 @@ async function refreshAllFeeds() {
       const error = await response.json();
       showAlert('Error: ' + error.error, 'Error', 'error');
       button.disabled = false;
-      button.textContent = 'Refresh All';
+      button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refresh All';
     }
   } catch (error) {
     showAlert('Error: ' + error.message, 'Error', 'error');
     button.disabled = false;
-    button.textContent = 'Refresh All';
+    button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refresh All';
   }
 }
 
@@ -626,8 +721,7 @@ let markRemainingButton = null;
 
 function setMarkRemainingButtonLabel(button, isWorking) {
   const icon = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-  const text = isWorking ? 'Marking...' : 'Mark remaining as read';
-  button.innerHTML = `${icon}<span>${text}</span>`;
+  button.innerHTML = icon;
 }
 
 function ensureMarkRemainingButton() {
@@ -635,7 +729,7 @@ function ensureMarkRemainingButton() {
   const button = document.createElement('button');
   button.type = 'button';
   button.id = 'markRemainingBtn';
-  button.className = 'hidden fixed bottom-4 right-4 z-40 flex items-center gap-2 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition shadow-lg';
+  button.className = 'hidden fixed bottom-4 md:right-8 right-6 z-40 flex items-center bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white p-3 rounded-full text-sm font-medium transition shadow-lg';
   setMarkRemainingButtonLabel(button, false);
   button.addEventListener('click', async () => {
     await markRemainingVisibleAsRead();
@@ -682,13 +776,14 @@ function getRemainingVisibleUnreadArticles() {
 }
 
 async function markRemainingVisibleAsRead() {
-  const visibleUnreadArticles = getRemainingVisibleUnreadArticles();
-  if (visibleUnreadArticles.length === 0) {
+  // Mark ALL unread articles, not just visible ones
+  const unreadArticles = Array.from(document.querySelectorAll('article.feed-border-unread[data-item-id]'));
+  if (unreadArticles.length === 0) {
     updateMarkRemainingButtonVisibility();
     return;
   }
 
-  const itemIds = visibleUnreadArticles
+  const itemIds = unreadArticles
     .map(a => a.getAttribute('data-item-id'))
     .filter(Boolean);
   if (itemIds.length === 0) return;
@@ -710,7 +805,7 @@ async function markRemainingVisibleAsRead() {
       throw new Error('Failed to mark items as read');
     }
 
-    visibleUnreadArticles.forEach(article => {
+    unreadArticles.forEach(article => {
       if (isArticleUnread(article)) {
         applyReadUI(article);
       }
@@ -725,12 +820,12 @@ async function markRemainingVisibleAsRead() {
 }
 
 function updateMarkRemainingButtonVisibility() {
-  // Only show when: user is at the bottom AND there are unread items still visible.
+  // Only show when: user is at the bottom AND there are any unread items in the DOM.
   const button = ensureMarkRemainingButton();
   const { atBottom } = getScrollMetrics();
-  const remainingVisibleUnread = getRemainingVisibleUnreadArticles();
+  const allUnread = document.querySelectorAll('article.feed-border-unread[data-item-id]');
 
-  if (atBottom && remainingVisibleUnread.length > 0) {
+  if (atBottom && allUnread.length > 0) {
     button.classList.remove('hidden');
   } else {
     button.classList.add('hidden');
@@ -956,7 +1051,7 @@ async function markAllAsRead() {
   
   // Disable button during operation
   button.disabled = true;
-  button.textContent = 'Marking...';
+  button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Marking...';
   
   try {
     const response = await fetch('/api/items/bulk-read', {
@@ -1005,11 +1100,11 @@ async function markAllAsRead() {
     
     // Re-enable button
     button.disabled = false;
-    button.textContent = 'Mark all as read';
+    button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Mark as read';
   } catch (error) {
     console.error('Error marking items as read:', error);
     button.disabled = false;
-    button.textContent = 'Mark all as read';
+    button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Mark as read';
   }
 }
 
@@ -1023,6 +1118,12 @@ document.getElementById('confirmModal')?.addEventListener('click', (e) => {
 document.getElementById('alertModal')?.addEventListener('click', (e) => {
   if (e.target.id === 'alertModal') {
     closeAlertModal();
+  }
+});
+
+document.getElementById('filterModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'filterModal') {
+    closeFilterModal();
   }
 });
 

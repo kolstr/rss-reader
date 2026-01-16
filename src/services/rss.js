@@ -1,5 +1,5 @@
 const Parser = require('rss-parser');
-const { itemQueries } = require('../db');
+const { itemQueries, filterKeywordQueries } = require('../db');
 
 /**
  * Normalize date to ISO format for consistent database storage and sorting
@@ -165,10 +165,42 @@ async function refreshFeed(feedId, feedUrl) {
     return { success: false, error: result.error };
   }
   
+  // Get filter keywords
+  const filterKeywords = filterKeywordQueries.getAll.all();
+  const keywords = filterKeywords.map(k => k.keyword.toLowerCase());
+  
+  // Get all existing titles for this feed to avoid duplicates
+  const existingTitles = new Set(
+    itemQueries.getTitlesByFeed.all(feedId).map(row => row.title)
+  );
+  
+  // Calculate cutoff date - 7 days ago
+  const sevenDaysAgo = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
+  
   let newItems = 0;
+  let filteredItems = 0;
+  let duplicateTitles = 0;
+  let tooOldItems = 0;
   
   for (const item of result.items) {
     const guid = item.guid || item.link || item.title;
+    const title = item.title || 'Untitled';
+    
+    // Check if item with exact title already exists
+    if (existingTitles.has(title)) {
+      duplicateTitles++;
+      continue; // Skip this item
+    }
+    
+    // Check if title contains any filter keyword (case-insensitive)
+    const titleLower = title.toLowerCase();
+    const isFiltered = keywords.some(keyword => titleLower.includes(keyword));
+    
+    if (isFiltered) {
+      filteredItems++;
+      continue; // Skip this item
+    }
+    
     const imageUrl = extractImageUrl(item);
     // Normalize date to ISO format for consistent sorting
     // Fallbacks for feeds that don't provide pubDate (e.g. Atom: <a10:updated>)
@@ -178,11 +210,18 @@ async function refreshFeed(feedId, feedUrl) {
       getFirstTextValue(item['atom:updated']);
     const pubDate = normalizeDate(item.isoDate || item.pubDate || updatedFallback);
     
+    // Skip items older than 7 days
+    const itemDate = new Date(pubDate);
+    if (itemDate < sevenDaysAgo) {
+      tooOldItems++;
+      continue; // Skip this item
+    }
+    
     try {
       const info = itemQueries.upsert.run(
         feedId,
         guid,
-        item.title || 'Untitled',
+        title,
         item.link || '',
         item.contentSnippet || item.description || '',
         imageUrl,
@@ -201,6 +240,9 @@ async function refreshFeed(feedId, feedUrl) {
     success: true,
     itemCount: result.items.length,
     newItems: newItems,
+    filteredItems: filteredItems,
+    duplicateTitles: duplicateTitles,
+    tooOldItems: tooOldItems,
   };
 }
 
