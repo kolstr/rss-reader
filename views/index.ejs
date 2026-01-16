@@ -199,7 +199,7 @@
                       
                       <% if (item.image_url) { %>
                         <div class="w-32 h-32 flex-shrink-0">
-                          <img src="<%= item.image_url %>" alt="" class="w-full h-full object-cover rounded" onerror="this.parentElement.style.display='none'">
+                          <img loading="lazy" src="<%= item.image_url %>" alt="" class="w-full h-full object-cover rounded" onerror="this.parentElement.style.display='none'">
                         </div>
                       <% } %>
                     </div>
