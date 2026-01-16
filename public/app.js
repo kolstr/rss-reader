@@ -337,6 +337,101 @@ function closeSettingsModal() {
   currentFeedId = null;
 }
 
+// Filter modal functions
+async function openFilterModal() {
+  const modal = document.getElementById('filterModal');
+  modal.classList.remove('hidden');
+  await loadFilterKeywords();
+}
+
+function closeFilterModal() {
+  document.getElementById('filterModal').classList.add('hidden');
+  document.getElementById('filterKeywordInput').value = '';
+}
+
+async function loadFilterKeywords() {
+  try {
+    const response = await fetch('/api/filter-keywords');
+    if (!response.ok) {
+      throw new Error('Failed to load filter keywords');
+    }
+    
+    const data = await response.json();
+    const keywords = data.keywords || [];
+    const listEl = document.getElementById('filterKeywordsList');
+    
+    if (keywords.length === 0) {
+      listEl.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 italic">No filter keywords yet</p>';
+      return;
+    }
+    
+    listEl.innerHTML = keywords.map(kw => `
+      <div class="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded">
+        <span class="text-gray-800 dark:text-gray-200">${escapeHtml(kw.keyword)}</span>
+        <button onclick="deleteFilterKeyword(${kw.id})" class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </button>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading filter keywords:', error);
+    showAlert('Failed to load filter keywords', 'Error', 'error');
+  }
+}
+
+async function addFilterKeyword(event) {
+  event.preventDefault();
+  
+  const input = document.getElementById('filterKeywordInput');
+  const keyword = input.value.trim();
+  
+  if (!keyword) return;
+  
+  try {
+    const response = await fetch('/api/filter-keywords', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keyword }),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to add keyword');
+    }
+    
+    input.value = '';
+    await loadFilterKeywords();
+  } catch (error) {
+    console.error('Error adding filter keyword:', error);
+    showAlert(error.message, 'Error', 'error');
+  }
+}
+
+async function deleteFilterKeyword(id) {
+  try {
+    const response = await fetch(`/api/filter-keywords/${id}`, {
+      method: 'DELETE',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to delete keyword');
+    }
+    
+    await loadFilterKeywords();
+  } catch (error) {
+    console.error('Error deleting filter keyword:', error);
+    showAlert('Failed to delete keyword', 'Error', 'error');
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Form submission
 document.getElementById('feedForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1023,6 +1118,12 @@ document.getElementById('confirmModal')?.addEventListener('click', (e) => {
 document.getElementById('alertModal')?.addEventListener('click', (e) => {
   if (e.target.id === 'alertModal') {
     closeAlertModal();
+  }
+});
+
+document.getElementById('filterModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'filterModal') {
+    closeFilterModal();
   }
 });
 
