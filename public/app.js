@@ -619,7 +619,7 @@ async function deleteFeed() {
 async function refreshAllFeeds() {
   const button = event.target;
   button.disabled = true;
-  button.textContent = 'Refreshing...';
+  button.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refreshing...';
   
   try {
     const response = await fetch('/api/feeds/refresh-all', {
@@ -632,12 +632,12 @@ async function refreshAllFeeds() {
       const error = await response.json();
       showAlert('Error: ' + error.error, 'Error', 'error');
       button.disabled = false;
-      button.textContent = 'Refresh All';
+      button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refresh All';
     }
   } catch (error) {
     showAlert('Error: ' + error.message, 'Error', 'error');
     button.disabled = false;
-    button.textContent = 'Refresh All';
+    button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Refresh All';
   }
 }
 
@@ -1051,7 +1051,7 @@ async function markAllAsRead() {
   
   // Disable button during operation
   button.disabled = true;
-  button.textContent = 'Marking...';
+  button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Marking...';
   
   try {
     const response = await fetch('/api/items/bulk-read', {
@@ -1100,11 +1100,11 @@ async function markAllAsRead() {
     
     // Re-enable button
     button.disabled = false;
-    button.textContent = 'Mark all as read';
+    button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Mark as read';
   } catch (error) {
     console.error('Error marking items as read:', error);
     button.disabled = false;
-    button.textContent = 'Mark all as read';
+    button.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Mark as read';
   }
 }
 

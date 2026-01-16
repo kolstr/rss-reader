@@ -174,9 +174,13 @@ async function refreshFeed(feedId, feedUrl) {
     itemQueries.getTitlesByFeed.all(feedId).map(row => row.title)
   );
   
+  // Calculate cutoff date - 7 days ago
+  const sevenDaysAgo = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
+  
   let newItems = 0;
   let filteredItems = 0;
   let duplicateTitles = 0;
+  let tooOldItems = 0;
   
   for (const item of result.items) {
     const guid = item.guid || item.link || item.title;
@@ -206,6 +210,13 @@ async function refreshFeed(feedId, feedUrl) {
       getFirstTextValue(item['atom:updated']);
     const pubDate = normalizeDate(item.isoDate || item.pubDate || updatedFallback);
     
+    // Skip items older than 7 days
+    const itemDate = new Date(pubDate);
+    if (itemDate < sevenDaysAgo) {
+      tooOldItems++;
+      continue; // Skip this item
+    }
+    
     try {
       const info = itemQueries.upsert.run(
         feedId,
@@ -231,6 +242,7 @@ async function refreshFeed(feedId, feedUrl) {
     newItems: newItems,
     filteredItems: filteredItems,
     duplicateTitles: duplicateTitles,
+    tooOldItems: tooOldItems,
   };
 }
 
