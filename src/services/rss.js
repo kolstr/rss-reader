@@ -192,9 +192,12 @@ async function refreshFeed(feedId, feedUrl) {
       continue; // Skip this item
     }
     
-    // Check if title contains any filter keyword (case-insensitive)
+    // Check if title or link contains any filter keyword (case-insensitive)
     const titleLower = title.toLowerCase();
-    const isFiltered = keywords.some(keyword => titleLower.includes(keyword));
+    const linkLower = (item.link || '').toLowerCase();
+    const isFiltered = keywords.some(keyword => 
+      titleLower.includes(keyword) || linkLower.includes(keyword)
+    );
     
     if (isFiltered) {
       filteredItems++;
