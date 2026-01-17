@@ -169,9 +169,9 @@ async function refreshFeed(feedId, feedUrl) {
   const filterKeywords = filterKeywordQueries.getAll.all();
   const keywords = filterKeywords.map(k => k.keyword.toLowerCase());
   
-  // Get all existing titles for this feed to avoid duplicates
+  // Get all existing titles across all feeds to avoid duplicates
   const existingTitles = new Set(
-    itemQueries.getTitlesByFeed.all(feedId).map(row => row.title)
+    itemQueries.getAllTitles.all().map(row => row.title)
   );
   
   // Calculate cutoff date - 7 days ago
@@ -191,6 +191,9 @@ async function refreshFeed(feedId, feedUrl) {
       duplicateTitles++;
       continue; // Skip this item
     }
+    
+    // Add title to set to prevent duplicates within the same refresh batch
+    existingTitles.add(title);
     
     // Check if title or link contains any filter keyword (case-insensitive)
     const titleLower = title.toLowerCase();

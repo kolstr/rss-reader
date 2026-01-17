@@ -78,6 +78,7 @@ const itemQueries = {
   deleteByFeed: db.prepare('DELETE FROM items WHERE feed_id = ?'),
   deleteOlderThan: db.prepare('DELETE FROM items WHERE pub_date < datetime(?, \'unixepoch\')'),
   getTitlesByFeed: db.prepare('SELECT title FROM items WHERE feed_id = ?'),
+  getAllTitles: db.prepare('SELECT title FROM items'),
 };
 
 // Stats queries
