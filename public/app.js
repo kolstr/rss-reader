@@ -591,7 +591,10 @@ function setupIconColorDetection() {
 
 // Initialize icon color detection on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', setupIconColorDetection);
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('main').focus();
 
+});
 // Delete feed
 async function deleteFeed() {
   if (!currentFeedId) return;
