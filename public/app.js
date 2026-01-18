@@ -547,14 +547,44 @@ async function toggleFullContent(itemId, buttonEl) {
         linkEl.style.pointerEvents = 'none';
       }
       
-      // Update button
-      buttonEl.innerHTML = `
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-        </svg>
-        Collapse
-      `;
+      // Hide the button when expanded (collapse happens automatically on scroll)
+      buttonEl.classList.add('hidden');
     }
+  }
+}
+
+// Collapse an expanded article (called when it scrolls out of view)
+function collapseArticle(itemId) {
+  if (!expandedArticles.has(itemId)) return;
+  
+  const article = document.querySelector(`article[data-item-id="${itemId}"]`);
+  if (!article) return;
+  
+  const descriptionEl = article.querySelector('.article-description');
+  const contentEl = article.querySelector('.article-full-content');
+  const imageEl = article.querySelector('.article-image');
+  const linkEl = article.querySelector('.article-link');
+  const buttonEl = article.querySelector('.read-all-btn');
+  
+  expandedArticles.delete(itemId);
+  descriptionEl?.classList.remove('hidden');
+  contentEl?.classList.add('hidden');
+  imageEl?.classList.remove('hidden');
+  
+  // Restore link behavior
+  if (linkEl) {
+    linkEl.style.pointerEvents = '';
+  }
+  
+  // Show and reset button
+  if (buttonEl) {
+    buttonEl.classList.remove('hidden');
+    buttonEl.innerHTML = `
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+      </svg>
+      Read all
+    `;
   }
 }
 
@@ -1063,6 +1093,35 @@ function checkForScrolledPastUnread() {
     const fullyAboveRoot = rect.bottom < rootTop + pastTopMargin;
     if (fullyAboveRoot) {
       markAsReadByAutoScroll(article);
+    }
+  }
+  
+  // Auto-collapse expanded articles that scroll out of view
+  checkForExpandedOutOfView();
+}
+
+function checkForExpandedOutOfView() {
+  if (expandedArticles.size === 0) return;
+  
+  const root = autoReadState.scrollRoot;
+  const rootTop = root ? root.getBoundingClientRect().top : 0;
+  const rootBottom = root ? root.getBoundingClientRect().bottom : window.innerHeight;
+  const margin = 50; // Small margin before collapsing
+  
+  for (const itemId of Array.from(expandedArticles)) {
+    const article = document.querySelector(`article[data-item-id="${itemId}"]`);
+    if (!article || !document.body.contains(article)) {
+      expandedArticles.delete(itemId);
+      continue;
+    }
+    
+    const rect = article.getBoundingClientRect();
+    // Collapse if article is fully above or below the viewport
+    const fullyAbove = rect.bottom < rootTop - margin;
+    const fullyBelow = rect.top > rootBottom + margin;
+    
+    if (fullyAbove || fullyBelow) {
+      collapseArticle(itemId);
     }
   }
 }
