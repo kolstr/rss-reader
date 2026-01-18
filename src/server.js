@@ -159,7 +159,7 @@ app.post('/api/feeds/detect-color-from-icon', async (req, res) => {
 
 // API: Create a new feed
 app.post('/api/feeds', async (req, res) => {
-  const { title, url, color } = req.body;
+  const { title, url, color, fetch_content } = req.body;
   
   if (!title || !url) {
     return res.status(400).json({ error: 'Title and URL are required' });
@@ -167,10 +167,11 @@ app.post('/api/feeds', async (req, res) => {
   
   try {
     const iconUrl = getFaviconUrl(url);
-    const result = feedQueries.create.run(title, url, iconUrl, color || '#3b82f6');
+    const fetchContentValue = fetch_content ? 1 : 0;
+    const result = feedQueries.create.run(title, url, iconUrl, color || '#3b82f6', fetchContentValue);
     
-    // Fetch initial items
-    await refreshFeed(result.lastInsertRowid, url);
+    // Fetch initial items (with content fetching if enabled)
+    await refreshFeed(result.lastInsertRowid, url, fetchContentValue === 1);
     
     res.json({ success: true, id: result.lastInsertRowid });
   } catch (error) {
@@ -181,14 +182,15 @@ app.post('/api/feeds', async (req, res) => {
 // API: Update a feed
 app.put('/api/feeds/:id', (req, res) => {
   const { id } = req.params;
-  const { title, url, icon_url, color } = req.body;
+  const { title, url, icon_url, color, fetch_content } = req.body;
   
   if (!title || !url) {
     return res.status(400).json({ error: 'Title and URL are required' });
   }
   
   try {
-    feedQueries.update.run(title, url, icon_url, color || '#3b82f6', id);
+    const fetchContentValue = fetch_content ? 1 : 0;
+    feedQueries.update.run(title, url, icon_url, color || '#3b82f6', fetchContentValue, id);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -217,7 +219,8 @@ app.post('/api/feeds/:id/refresh', async (req, res) => {
   }
   
   try {
-    const result = await refreshFeed(feed.id, feed.url);
+    const fetchContent = feed.fetch_content === 1;
+    const result = await refreshFeed(feed.id, feed.url, fetchContent);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -255,6 +258,25 @@ app.post('/api/items/:id/unread', (req, res) => {
   try {
     itemQueries.markUnread.run(id);
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Get item full content
+app.get('/api/items/:id/content', (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const item = itemQueries.getById.get(id);
+    if (!item) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    res.json({ 
+      success: true, 
+      content: item.full_content,
+      hasContent: !!item.full_content 
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

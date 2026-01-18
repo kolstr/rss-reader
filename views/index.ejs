@@ -120,7 +120,7 @@
                     <div class="feed-icon w-5 h-5 rounded" style="background-color: <%= feed.color %>"></div>
                   <% } %>
                   <!-- Settings icon appears on hover -->
-                  <svg onclick="event.preventDefault(); event.stopPropagation(); editFeed(<%= feed.id %>, '<%= feed.title.replace(/'/g, "\\'") %>', '<%= feed.url.replace(/'/g, "\\'") %>', '<%= feed.icon_url ? feed.icon_url.replace(/'/g, "\\'") : '' %>', '<%= feed.color %>')" 
+                  <svg onclick="event.preventDefault(); event.stopPropagation(); editFeed(<%= feed.id %>, '<%= feed.title.replace(/'/g, "\\'") %>', '<%= feed.url.replace(/'/g, "\\'") %>', '<%= feed.icon_url ? feed.icon_url.replace(/'/g, "\\'") : '' %>', '<%= feed.color %>', <%= feed.fetch_content || 0 %>)" 
                        class="settings-icon w-5 h-5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer absolute inset-0" 
                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -192,19 +192,22 @@
                   </div>
                   
                   <!-- Content -->
-                  <a href="<%= item.link %>" target="_blank" rel="noopener noreferrer" class="block" onclick="markAsRead(<%= item.id %>, event)">
+                  <a href="<%= item.link %>" target="_blank" rel="noopener noreferrer" class="block article-link" onclick="markAsRead(<%= item.id %>, event)">
                     <div class="flex gap-4">
                       <div class="flex-1">
                         <h3 class="text-lg font-semibold text-gray-800 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition line-clamp-2 mb-2">
                           <%= item.title %>
                         </h3>
-                        <p class="text-gray-600 dark:text-gray-300 text-sm line-clamp-3">
+                        <p class="article-description text-gray-600 dark:text-gray-300 text-sm line-clamp-3">
                           <%= item.description %>
                         </p>
+                        <div class="article-full-content hidden prose prose-sm dark:prose-invert max-w-none mt-2">
+                          <!-- Full content will be loaded here -->
+                        </div>
                       </div>
                       
                       <% if (item.image_url) { %>
-                        <div class="w-32 h-32 flex-shrink-0">
+                        <div class="article-image w-32 h-32 flex-shrink-0">
                           <img loading="lazy" src="<%= item.image_url %>" alt="" class="w-full h-full object-cover rounded" onerror="this.parentElement.style.display='none'">
                         </div>
                       <% } %>
@@ -217,6 +220,15 @@
                             class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition">
                       <%= item.read_at ? 'Mark Unread' : 'Mark Read' %>
                     </button>
+                    <% if (item.full_content) { %>
+                      <button onclick="toggleFullContent(<%= item.id %>, this)" 
+                              class="read-all-btn text-xs text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 transition flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                        Read all
+                      </button>
+                    <% } %>
                   </div>
                 </div>
               </article>
@@ -285,6 +297,22 @@
                    class="w-full h-10 rounded cursor-pointer">
           </div>
           
+          <div class="flex items-center justify-between">
+            <div>
+              <label for="feedFetchContent" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Fetch full content
+              </label>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Extract and save article content from web pages</p>
+            </div>
+            <button type="button" onclick="toggleFetchContent()" id="fetchContentToggle" 
+                    class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 bg-gray-200 dark:bg-gray-600" 
+                    role="switch" aria-checked="false">
+              <span class="sr-only">Fetch full content</span>
+              <span id="fetchContentToggleThumb" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0"></span>
+            </button>
+            <input type="hidden" id="feedFetchContent" name="fetch_content" value="0">
+          </div>
+
           <div class="flex gap-2 pt-2">
             <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition">
               Save

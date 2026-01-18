@@ -1,5 +1,6 @@
 const Parser = require('rss-parser');
-const { itemQueries, filterKeywordQueries } = require('../db');
+const { itemQueries, filterKeywordQueries, feedQueries } = require('../db');
+const { extractArticleContent } = require('./articleExtractor');
 
 /**
  * Normalize date to ISO format for consistent database storage and sorting
@@ -158,7 +159,7 @@ async function fetchFeed(feedUrl) {
 /**
  * Refresh a feed and update database
  */
-async function refreshFeed(feedId, feedUrl) {
+async function refreshFeed(feedId, feedUrl, fetchContent = false) {
   const result = await fetchFeed(feedUrl);
   
   if (!result.success) {
@@ -181,6 +182,7 @@ async function refreshFeed(feedId, feedUrl) {
   let filteredItems = 0;
   let duplicateTitles = 0;
   let tooOldItems = 0;
+  const newItemIds = []; // Track new item IDs for content fetching
   
   for (const item of result.items) {
     const guid = item.guid || item.link || item.title;
@@ -236,10 +238,44 @@ async function refreshFeed(feedId, feedUrl) {
       
       if (info.changes > 0) {
         newItems++;
+        // Track the item for content fetching
+        if (fetchContent && info.lastInsertRowid) {
+          newItemIds.push({ id: info.lastInsertRowid, link: item.link || '' });
+        }
       }
     } catch (error) {
       console.error(`Error upserting item:`, error.message);
     }
+  }
+  
+  // Fetch content for new items if enabled
+  let contentFetched = 0;
+  let contentFailed = 0;
+  
+  if (fetchContent && newItemIds.length > 0) {
+    console.log(`Fetching content for ${newItemIds.length} new items from feed ${feedId}...`);
+    
+    for (const item of newItemIds) {
+      if (!item.link) continue;
+      
+      try {
+        const contentResult = await extractArticleContent(item.link);
+        if (contentResult.success && contentResult.content) {
+          itemQueries.updateFullContent.run(contentResult.content, item.id);
+          contentFetched++;
+        } else {
+          contentFailed++;
+        }
+      } catch (error) {
+        console.error(`Error fetching content for item ${item.id}:`, error.message);
+        contentFailed++;
+      }
+      
+      // Small delay to avoid overwhelming servers
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    
+    console.log(`Content fetching complete: ${contentFetched} fetched, ${contentFailed} failed`);
   }
   
   return {
@@ -249,6 +285,8 @@ async function refreshFeed(feedId, feedUrl) {
     filteredItems: filteredItems,
     duplicateTitles: duplicateTitles,
     tooOldItems: tooOldItems,
+    contentFetched: contentFetched,
+    contentFailed: contentFailed,
   };
 }
 
@@ -260,7 +298,8 @@ async function refreshAllFeeds(feeds) {
   
   for (const feed of feeds) {
     console.log(`Refreshing feed: ${feed.title}`);
-    const result = await refreshFeed(feed.id, feed.url);
+    const fetchContent = feed.fetch_content === 1;
+    const result = await refreshFeed(feed.id, feed.url, fetchContent);
     results.push({
       feedId: feed.id,
       feedTitle: feed.title,

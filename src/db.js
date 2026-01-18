@@ -43,8 +43,8 @@ runMigrations();
 const feedQueries = {
   getAll: db.prepare('SELECT * FROM feeds ORDER BY title'),
   getById: db.prepare('SELECT * FROM feeds WHERE id = ?'),
-  create: db.prepare('INSERT INTO feeds (title, url, icon_url, color) VALUES (?, ?, ?, ?)'),
-  update: db.prepare('UPDATE feeds SET title = ?, url = ?, icon_url = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'),
+  create: db.prepare('INSERT INTO feeds (title, url, icon_url, color, fetch_content) VALUES (?, ?, ?, ?, ?)'),
+  update: db.prepare('UPDATE feeds SET title = ?, url = ?, icon_url = ?, color = ?, fetch_content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'),
   delete: db.prepare('DELETE FROM feeds WHERE id = ?'),
 };
 
@@ -63,6 +63,7 @@ const itemQueries = {
     WHERE items.feed_id = ? 
     ORDER BY items.pub_date DESC
   `),
+  getById: db.prepare('SELECT * FROM items WHERE id = ?'),
   upsert: db.prepare(`
     INSERT INTO items (feed_id, guid, title, link, description, image_url, pub_date)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -73,12 +74,14 @@ const itemQueries = {
       image_url = excluded.image_url,
       pub_date = excluded.pub_date
   `),
+  updateFullContent: db.prepare('UPDATE items SET full_content = ? WHERE id = ?'),
   markRead: db.prepare('UPDATE items SET read_at = CURRENT_TIMESTAMP WHERE id = ?'),
   markUnread: db.prepare('UPDATE items SET read_at = NULL WHERE id = ?'),
   deleteByFeed: db.prepare('DELETE FROM items WHERE feed_id = ?'),
   deleteOlderThan: db.prepare('DELETE FROM items WHERE pub_date < datetime(?, \'unixepoch\')'),
   getTitlesByFeed: db.prepare('SELECT title FROM items WHERE feed_id = ?'),
   getAllTitles: db.prepare('SELECT title FROM items'),
+  getItemsWithoutContent: db.prepare('SELECT id, link FROM items WHERE feed_id = ? AND full_content IS NULL'),
 };
 
 // Stats queries

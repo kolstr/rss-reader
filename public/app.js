@@ -267,6 +267,9 @@ function openSettingsModal() {
   document.getElementById('deleteFeedBtn').classList.add('hidden');
   document.getElementById('settingsModal').classList.remove('hidden');
   
+  // Reset fetch content toggle
+  setFetchContentToggle(false);
+  
   // Set up URL change listener for auto-fetch
   setupUrlAutoFetch();
 }
@@ -317,7 +320,7 @@ function setupUrlAutoFetch() {
   });
 }
 
-function editFeed(id, title, url, iconUrl, color) {
+function editFeed(id, title, url, iconUrl, color, fetchContent) {
   currentFeedId = id;
   document.getElementById('modalTitle').textContent = 'Edit Feed';
   document.getElementById('feedId').value = id;
@@ -327,6 +330,9 @@ function editFeed(id, title, url, iconUrl, color) {
   document.getElementById('feedColor').value = color;
   document.getElementById('deleteFeedBtn').classList.remove('hidden');
   document.getElementById('settingsModal').classList.remove('hidden');
+  
+  // Set fetch content toggle
+  setFetchContentToggle(fetchContent === 1);
   
   // Set up URL change listener for auto-fetch (though currentFeedId will prevent auto-fill)
   setupUrlAutoFetch();
@@ -432,6 +438,126 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// Fetch content toggle management
+function toggleFetchContent() {
+  const input = document.getElementById('feedFetchContent');
+  const isEnabled = input.value === '1';
+  setFetchContentToggle(!isEnabled);
+}
+
+function setFetchContentToggle(enabled) {
+  const toggle = document.getElementById('fetchContentToggle');
+  const thumb = document.getElementById('fetchContentToggleThumb');
+  const input = document.getElementById('feedFetchContent');
+  
+  if (enabled) {
+    toggle?.classList.add('bg-blue-500', 'dark:bg-blue-600');
+    toggle?.classList.remove('bg-gray-200', 'dark:bg-gray-600');
+    toggle?.setAttribute('aria-checked', 'true');
+    thumb?.classList.add('translate-x-5');
+    thumb?.classList.remove('translate-x-0');
+    if (input) input.value = '1';
+  } else {
+    toggle?.classList.remove('bg-blue-500', 'dark:bg-blue-600');
+    toggle?.classList.add('bg-gray-200', 'dark:bg-gray-600');
+    toggle?.setAttribute('aria-checked', 'false');
+    thumb?.classList.remove('translate-x-5');
+    thumb?.classList.add('translate-x-0');
+    if (input) input.value = '0';
+  }
+}
+
+// Full content expansion
+const expandedArticles = new Set();
+const loadedContent = new Map();
+
+async function toggleFullContent(itemId, buttonEl) {
+  const article = document.querySelector(`article[data-item-id="${itemId}"]`);
+  if (!article) return;
+  
+  const descriptionEl = article.querySelector('.article-description');
+  const contentEl = article.querySelector('.article-full-content');
+  const imageEl = article.querySelector('.article-image');
+  const linkEl = article.querySelector('.article-link');
+  
+  if (expandedArticles.has(itemId)) {
+    // Collapse
+    expandedArticles.delete(itemId);
+    descriptionEl?.classList.remove('hidden');
+    contentEl?.classList.add('hidden');
+    imageEl?.classList.remove('hidden');
+    
+    // Update button
+    buttonEl.innerHTML = `
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+      </svg>
+      Read all
+    `;
+    
+    // Restore link behavior
+    if (linkEl) {
+      linkEl.style.pointerEvents = '';
+    }
+  } else {
+    // Expand
+    expandedArticles.add(itemId);
+    
+    // Load content if not already loaded
+    if (!loadedContent.has(itemId)) {
+      buttonEl.innerHTML = `
+        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Loading...
+      `;
+      
+      try {
+        const response = await fetch(`/api/items/${itemId}/content`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.content) {
+            loadedContent.set(itemId, data.content);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading content:', error);
+        expandedArticles.delete(itemId);
+        buttonEl.innerHTML = `
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+          Read all
+        `;
+        return;
+      }
+    }
+    
+    // Display content
+    const content = loadedContent.get(itemId);
+    if (content && contentEl) {
+      contentEl.innerHTML = content;
+      descriptionEl?.classList.add('hidden');
+      contentEl.classList.remove('hidden');
+      imageEl?.classList.add('hidden');
+      
+      // Disable link to prevent navigation when expanded
+      if (linkEl) {
+        linkEl.style.pointerEvents = 'none';
+      }
+      
+      // Update button
+      buttonEl.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+        </svg>
+        Collapse
+      `;
+    }
+  }
+}
+
 // Form submission
 document.getElementById('feedForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -441,6 +567,7 @@ document.getElementById('feedForm')?.addEventListener('submit', async (e) => {
     url: document.getElementById('feedUrl').value,
     icon_url: document.getElementById('feedIcon').value,
     color: document.getElementById('feedColor').value,
+    fetch_content: document.getElementById('feedFetchContent').value === '1',
   };
   
   try {
