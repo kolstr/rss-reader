@@ -483,6 +483,12 @@ async function toggleFullContent(itemId, buttonEl) {
   if (expandedArticles.has(itemId)) {
     // Collapse
     expandedArticles.delete(itemId);
+    
+    // Hide next card button if this is the currently expanded article
+    if (currentExpandedArticle === article) {
+      hideNextCardButton();
+    }
+    
     descriptionEl?.classList.remove('hidden');
     contentEl?.classList.add('hidden');
     imageEl?.classList.remove('hidden');
@@ -499,9 +505,16 @@ async function toggleFullContent(itemId, buttonEl) {
     if (linkEl) {
       linkEl.style.pointerEvents = '';
     }
+    
+    // Scroll card into view after collapsing
+    article.scrollIntoView();
   } else {
     // Expand
     expandedArticles.add(itemId);
+    currentExpandedArticle = article;
+    
+    // Show next card navigation button
+    showNextCardButton();
     
     // Load content if not already loaded
     if (!loadedContent.has(itemId)) {
@@ -865,6 +878,8 @@ const autoReadState = {
 };
 
 let markRemainingButton = null;
+let nextCardButton = null;
+let currentExpandedArticle = null;
 
 function setMarkRemainingButtonLabel(button, isWorking) {
   const icon = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
@@ -886,21 +901,93 @@ function ensureMarkRemainingButton() {
   return button;
 }
 
+function ensureNextCardButton() {
+  if (nextCardButton) return nextCardButton;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.id = 'nextCardBtn';
+  button.className = 'hidden fixed bottom-4 md:right-8 right-6 z-40 flex items-center bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white p-3 rounded-full text-sm font-medium transition shadow-lg';
+  button.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>';
+  button.title = 'Scroll to next card';
+  button.addEventListener('click', () => {
+    scrollToNextCard();
+  });
+  document.body.appendChild(button);
+  nextCardButton = button;
+  return button;
+}
+
+function showNextCardButton() {
+  const button = ensureNextCardButton();
+  button.classList.remove('hidden');
+}
+
+function hideNextCardButton() {
+  if (nextCardButton) {
+    nextCardButton.classList.add('hidden');
+  }
+  currentExpandedArticle = null;
+}
+
+function scrollToNextCard() {
+  if (!currentExpandedArticle) {
+    hideNextCardButton();
+    return;
+  }
+  
+  // Find all visible articles
+  const allArticles = Array.from(document.querySelectorAll('article[data-item-id]'));
+  const visibleArticles = allArticles.filter(article => {
+    if (article.style.display === 'none') return false;
+    const rect = article.getBoundingClientRect();
+    return rect.height > 0;
+  });
+  
+  // Find current article index
+  const currentIndex = visibleArticles.indexOf(currentExpandedArticle);
+  //markAsReadByAutoScroll(currentExpandedArticle);
+  // Get next visible article
+  if (currentIndex >= 0 && currentIndex < visibleArticles.length - 1) {
+    const nextArticle = visibleArticles[currentIndex + 1];
+
+    // Scroll to next article with smooth behavior
+    nextArticle.scrollIntoView();
+  } else if (currentIndex === visibleArticles.length - 1) {
+    // Already on last card: scroll to the bottom (works on mobile + desktop)
+    const scrollRoot = autoReadState.scrollRoot || getScrollRootElement();
+    if (scrollRoot) {
+      scrollRoot.scrollTo({ top: scrollRoot.scrollHeight });
+    } else {
+      window.scrollTo({ top: document.documentElement.scrollHeight });
+    }
+  }
+  // Hide the button after clicking
+  hideNextCardButton();
+}
+
 function getScrollMetrics() {
-  const root = autoReadState.scrollRoot;
-  if (root) {
+  const thresholdPx = 48;
+
+  // Prefer the configured scroll root (desktop), but only if it is truly scrollable.
+  // If the page scrolls on `window` (common on mobile), using a non-scrollable root
+  // would incorrectly report `atBottom: true` (because clientHeight ~= scrollHeight).
+  const root = autoReadState.scrollRoot || getScrollRootElement();
+  if (root && root.scrollHeight > root.clientHeight + 2) {
     return {
-      atBottom: root.scrollTop + root.clientHeight >= root.scrollHeight - 2,
+      atBottom: root.scrollTop + root.clientHeight >= root.scrollHeight - thresholdPx,
     };
   }
 
   const docEl = document.documentElement;
-  // Use documentElement metrics to avoid issues across browsers
-  const scrollTop = docEl.scrollTop;
-  const clientHeight = docEl.clientHeight;
-  const scrollHeight = docEl.scrollHeight;
+  const body = document.body;
+  // Be defensive on mobile: different browsers report scrollTop/scrollHeight on
+  // window vs documentElement vs body, and fractional pixels can prevent exact hits.
+  const scrollTop =
+    window.scrollY || window.pageYOffset || docEl.scrollTop || body.scrollTop || 0;
+  const clientHeight = window.innerHeight || docEl.clientHeight || 0;
+  const scrollHeight = Math.max(docEl.scrollHeight || 0, body.scrollHeight || 0);
   return {
-    atBottom: scrollTop + clientHeight >= scrollHeight - 2,
+    atBottom: scrollTop + clientHeight >= scrollHeight - thresholdPx,
   };
 }
 
@@ -974,6 +1061,8 @@ function updateMarkRemainingButtonVisibility() {
 
   if (atBottom && allUnread.length > 0) {
     button.classList.remove('hidden');
+    // Hide next card button when at bottom
+    hideNextCardButton();
   } else {
     button.classList.add('hidden');
   }
@@ -1034,6 +1123,11 @@ function markAsReadByAutoScroll(article) {
     .then(() => {
       if (isArticleUnread(article)) {
         applyReadUI(article);
+        
+        // Hide next card button if this is the currently expanded article
+        if (currentExpandedArticle === article) {
+          hideNextCardButton();
+        }
       }
     })
     .catch(err => console.error('Error marking as read:', err))
@@ -1124,22 +1218,37 @@ function setupAutoMarkAsReadOnScroll() {
   if (!autoReadState.scrollListenerAttached) {
     autoReadState.scrollListenerAttached = true;
     let scheduled = false;
+    let trailingTimeoutId = null;
+
+    const runChecks = () => {
+      checkForScrolledPastUnread();
+      updateMarkRemainingButtonVisibility();
+    };
 
     const scheduleCheck = () => {
-      if (scheduled) return;
-      scheduled = true;
-      requestAnimationFrame(() => {
-        scheduled = false;
-        checkForScrolledPastUnread();
-        updateMarkRemainingButtonVisibility();
-      });
+      if (!scheduled) {
+        scheduled = true;
+        requestAnimationFrame(() => {
+          scheduled = false;
+          runChecks();
+        });
+      }
+
+      // Trailing check helps on mobile momentum scrolling where the last
+      // scroll event can be early or coalesced.
+      if (trailingTimeoutId) clearTimeout(trailingTimeoutId);
+      trailingTimeoutId = setTimeout(runChecks, 200);
     };
 
     // Attach to both: window (document scroll on mobile) and main (scroll container on desktop)
     window.addEventListener('scroll', scheduleCheck, { passive: true });
+    // Some mobile browsers are more reliable with these signals.
+    window.addEventListener('touchend', scheduleCheck, { passive: true });
+    window.addEventListener('orientationchange', scheduleCheck, { passive: true });
     const main = document.querySelector('main');
     main?.addEventListener('scroll', scheduleCheck, { passive: true });
     window.addEventListener('resize', scheduleCheck, { passive: true });
+    window.addEventListener('load', scheduleCheck);
     document.addEventListener('visibilitychange', () => {
       // If the tab was backgrounded during scrolling, reconcile state when visible again.
       if (!document.hidden) scheduleCheck();
