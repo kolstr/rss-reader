@@ -64,6 +64,7 @@ const itemQueries = {
     ORDER BY items.pub_date DESC
   `),
   getById: db.prepare('SELECT * FROM items WHERE id = ?'),
+  getByGuid: db.prepare('SELECT id, link, full_content FROM items WHERE feed_id = ? AND guid = ?'),
   upsert: db.prepare(`
     INSERT INTO items (feed_id, guid, title, link, description, image_url, pub_date)
     VALUES (?, ?, ?, ?, ?, ?, ?)

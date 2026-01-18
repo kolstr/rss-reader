@@ -238,9 +238,14 @@ async function refreshFeed(feedId, feedUrl, fetchContent = false) {
       
       if (info.changes > 0) {
         newItems++;
-        // Track the item for content fetching
-        if (fetchContent && info.lastInsertRowid) {
-          newItemIds.push({ id: info.lastInsertRowid, link: item.link || '' });
+        // Track the item for content fetching - but we need the correct ID
+        // lastInsertRowid is unreliable for ON CONFLICT DO UPDATE, so we query by guid
+        if (fetchContent) {
+          const insertedItem = itemQueries.getByGuid.get(feedId, guid);
+          // Only fetch content if item exists and doesn't already have content
+          if (insertedItem && !insertedItem.full_content && insertedItem.link) {
+            newItemIds.push({ id: insertedItem.id, link: insertedItem.link });
+          }
         }
       }
     } catch (error) {
