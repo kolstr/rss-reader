@@ -1191,6 +1191,15 @@ function checkForScrolledPastUnread() {
       markAsReadByAutoScroll(article);
     }
   }
+  
+  // Also check if any expanded article (read or unread) has scrolled out of view
+  if (currentExpandedArticle && document.body.contains(currentExpandedArticle)) {
+    const rect = currentExpandedArticle.getBoundingClientRect();
+    const fullyAboveRoot = rect.bottom < rootTop + pastTopMargin;
+    if (fullyAboveRoot) {
+      hideNextCardButton();
+    }
+  }
 }
 
 function setupAutoMarkAsReadOnScroll() {
