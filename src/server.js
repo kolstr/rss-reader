@@ -75,8 +75,8 @@ app.post('/api/feeds/fetch-metadata', async (req, res) => {
     const parser = new Parser();
     const feed = await parser.parseURL(feedUrl);
     
-    // Also detect icon and color
-    const iconResult = await detectIconAndColor(feedUrl);
+    // Also detect icon and color - pass the feed data so it can extract icon from feed
+    const iconResult = await detectIconAndColor(feedUrl, feed);
     
     res.json({
       success: true,

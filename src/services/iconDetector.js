@@ -112,16 +112,30 @@ async function extractColorFromImage(imageBuffer, isIco = false) {
 
 /**
  * Fetch icon and detect color from feed URL
+ * @param {string} feedUrl - The URL of the RSS feed
+ * @param {object} feedData - Optional parsed RSS feed data (from rss-parser)
  */
-async function detectIconAndColor(feedUrl) {
+async function detectIconAndColor(feedUrl, feedData = null) {
   try {
-    const iconUrl = getFaviconUrl(feedUrl);
+    // First, try to get icon URL from the feed's <channel><image><url>
+    let iconUrl = null;
+    
+    if (feedData && feedData.image && feedData.image.url) {
+      iconUrl = feedData.image.url;
+      console.log(`Using icon from RSS feed: ${iconUrl}`);
+    }
+    
+    // Fall back to favicon.ico if no icon in feed
+    if (!iconUrl) {
+      iconUrl = getFaviconUrl(feedUrl);
+      console.log(`Using favicon fallback: ${iconUrl}`);
+    }
     
     if (!iconUrl) {
       return { success: false, error: 'Invalid feed URL' };
     }
     
-    // Try to fetch the favicon
+    // Try to fetch the icon
     try {
       const response = await axios.get(iconUrl, {
         responseType: 'arraybuffer',
@@ -151,7 +165,7 @@ async function detectIconAndColor(feedUrl) {
         color: color,
       };
     } catch (fetchError) {
-      // If favicon.ico doesn't exist, try alternative locations
+      // If the icon from feed or favicon.ico doesn't exist, try alternative locations
       try {
         const url = new URL(feedUrl);
         const alternativeIconUrl = `${url.protocol}//${url.host}/apple-touch-icon.png`;
