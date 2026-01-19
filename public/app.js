@@ -13,6 +13,23 @@ function toggleShowRead() {
   showRead = !showRead;
   localStorage.setItem('showRead', showRead);
   document.documentElement.classList.toggle('hide-read', !showRead);
+  
+  if(showRead){
+    // Collapse all expanded read articles when toggling to show read
+    if (expandedArticles.size > 0) {
+      const expandedIds = Array.from(expandedArticles);
+      expandedIds.forEach(itemId => {
+        const article = document.querySelector(`article[data-item-id="${itemId}"]`);
+        if (article && article.classList.contains('feed-border-read')) {
+          const buttonEl = article.querySelector('button[onclick*="toggleFullContent"]');
+          if (buttonEl) {
+            toggleFullContent(itemId, buttonEl);
+          }
+        }
+      });
+    }
+  }
+  
   updateShowReadToggle();
 }
 
@@ -472,6 +489,9 @@ const expandedArticles = new Set();
 const loadedContent = new Map();
 
 async function toggleFullContent(itemId, buttonEl) {
+  // Normalize itemId to string for consistent comparison
+  itemId = String(itemId);
+  
   const article = document.querySelector(`article[data-item-id="${itemId}"]`);
   if (!article) return;
   
@@ -961,8 +981,20 @@ function scrollToNextCard() {
       window.scrollTo({ top: document.documentElement.scrollHeight });
     }
   }
+  // Toggle full content of the currently expanded article
+  /*
+  if (currentExpandedArticle) {
+    const itemId = currentExpandedArticle.getAttribute('data-item-id');
+    const buttonEl = currentExpandedArticle.querySelector('button[onclick*="toggleFullContent"]');
+    if (itemId && buttonEl) {
+      toggleFullContent(itemId, buttonEl);
+    }
+  }
+  */
   // Hide the button after clicking
   hideNextCardButton();
+  
+
 }
 
 function getScrollMetrics() {
