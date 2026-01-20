@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS feeds (
   url TEXT NOT NULL UNIQUE,
   icon_url TEXT,
   color TEXT DEFAULT '#3b82f6',
+  fetch_content BOOLEAN DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -17,6 +18,7 @@ CREATE TABLE IF NOT EXISTS items (
   title TEXT NOT NULL,
   link TEXT NOT NULL,
   description TEXT,
+  full_content TEXT,
   image_url TEXT,
   pub_date DATETIME,
   read_at DATETIME,
