@@ -527,7 +527,8 @@ async function toggleFullContent(itemId, buttonEl) {
     }
     
     // Scroll card into view after collapsing
-    article.scrollIntoView();
+    noteProgrammaticScrollActivity();
+    article.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } else {
     // Expand
     expandedArticles.add(itemId);
@@ -895,11 +896,29 @@ const autoReadState = {
   observer: null,
   scrollRoot: null,
   scrollListenerAttached: false,
+  programmaticScrollActive: false,
+  programmaticScrollReleaseTimer: null,
 };
 
 let markRemainingButton = null;
 let nextCardButton = null;
 let currentExpandedArticle = null;
+
+function runScrollChecks() {
+  checkForScrolledPastUnread();
+  updateMarkRemainingButtonVisibility();
+}
+
+function noteProgrammaticScrollActivity() {
+  autoReadState.programmaticScrollActive = true;
+  if (autoReadState.programmaticScrollReleaseTimer) {
+    clearTimeout(autoReadState.programmaticScrollReleaseTimer);
+  }
+  autoReadState.programmaticScrollReleaseTimer = setTimeout(() => {
+    autoReadState.programmaticScrollActive = false;
+    runScrollChecks();
+  }, 220);
+}
 
 function setMarkRemainingButtonLabel(button, isWorking) {
   const icon = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
@@ -971,14 +990,17 @@ function scrollToNextCard() {
     const nextArticle = visibleArticles[currentIndex + 1];
 
     // Scroll to next article with smooth behavior
-    nextArticle.scrollIntoView();
+    noteProgrammaticScrollActivity();
+    nextArticle.scrollIntoView({ behavior: 'smooth', block: 'start' });
   } else if (currentIndex === visibleArticles.length - 1) {
     // Already on last card: scroll to the bottom (works on mobile + desktop)
     const scrollRoot = autoReadState.scrollRoot || getScrollRootElement();
     if (scrollRoot) {
-      scrollRoot.scrollTo({ top: scrollRoot.scrollHeight });
+      noteProgrammaticScrollActivity();
+      scrollRoot.scrollTo({ top: scrollRoot.scrollHeight, behavior: 'smooth' });
     } else {
-      window.scrollTo({ top: document.documentElement.scrollHeight });
+      noteProgrammaticScrollActivity();
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
     }
   }
   // Toggle full content of the currently expanded article
@@ -1086,6 +1108,7 @@ async function markRemainingVisibleAsRead() {
 }
 
 function updateMarkRemainingButtonVisibility() {
+  if (autoReadState.programmaticScrollActive) return;
   // Only show when: user is at the bottom AND there are any unread items in the DOM.
   const button = ensureMarkRemainingButton();
   const { atBottom } = getScrollMetrics();
@@ -1170,6 +1193,7 @@ function markAsReadByAutoScroll(article) {
 }
 
 function checkForScrolledPastUnread() {
+  if (autoReadState.programmaticScrollActive) return;
   const root = autoReadState.scrollRoot;
   const rootTop = root ? root.getBoundingClientRect().top : 0;
   const pastTopMargin = 8;
@@ -1241,13 +1265,17 @@ function setupAutoMarkAsReadOnScroll() {
               const rootTop = entry.rootBounds ? entry.rootBounds.top : 0;
               const pastTopMargin = 8;
               if (entry.boundingClientRect.bottom < rootTop + pastTopMargin) {
-                markAsReadByAutoScroll(article);
+                if (!autoReadState.programmaticScrollActive) {
+                  markAsReadByAutoScroll(article);
+                }
               }
             }
           }
         }
 
-        updateMarkRemainingButtonVisibility();
+        if (!autoReadState.programmaticScrollActive) {
+          updateMarkRemainingButtonVisibility();
+        }
       },
       { root: autoReadState.scrollRoot, threshold: 0 }
     );
@@ -1262,11 +1290,14 @@ function setupAutoMarkAsReadOnScroll() {
     let trailingTimeoutId = null;
 
     const runChecks = () => {
-      checkForScrolledPastUnread();
-      updateMarkRemainingButtonVisibility();
+      runScrollChecks();
     };
 
     const scheduleCheck = () => {
+      if (autoReadState.programmaticScrollActive) {
+        noteProgrammaticScrollActivity();
+        return;
+      }
       if (!scheduled) {
         scheduled = true;
         requestAnimationFrame(() => {
