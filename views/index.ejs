@@ -59,6 +59,17 @@
             </svg>
           </button>
         </div>
+        <form action="/search" method="POST" class="mt-2">
+          <div class="flex items-center w-full bg-gray-100 dark:bg-gray-700 rounded-lg transition-colors duration-200">
+            <input type="text" name="q" value="<%= searchTerm || '' %>" placeholder="Search..."
+                   class="flex-1 min-w-0 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200">
+            <button type="submit" class="px-3 py-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none transition-colors duration-150" aria-label="Search">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </button>
+          </div>
+        </form>
         <button onclick="openSettingsModal()" class="mt-2 w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition flex items-center justify-start gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -148,8 +159,11 @@
         <div class="mb-6">
           <div>
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
-              <%= currentFeed ? currentFeed.title : 'All Feeds' %>
+              <%= searchTerm ? 'Search results' : (currentFeed ? currentFeed.title : 'All Feeds') %>
             </h2>
+            <% if (searchTerm) { %>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Results for "<%= searchTerm %>"</p>
+            <% } %>
             <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">
               <span id="visibleItemsCount">
                 <span class="count-all"><%= items.length %></span>

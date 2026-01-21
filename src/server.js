@@ -52,6 +52,31 @@ app.get('/', (req, res) => {
     currentFeed,
     unreadCounts,
     totalUnread,
+    searchTerm: '',
+  });
+});
+
+// Search items
+app.post('/search', (req, res) => {
+  const searchTerm = (req.body.q || '').trim();
+  if (!searchTerm) {
+    return res.redirect('/');
+  }
+
+  const feeds = feedQueries.getAll.all();
+  const unreadCounts = getUnreadCounts(feeds);
+  const totalUnread = statsQueries.getUnreadCount.get().count;
+
+  const likeTerm = `%${searchTerm}%`;
+  const items = itemQueries.search.all(likeTerm, likeTerm, likeTerm);
+
+  res.render('index', {
+    feeds,
+    items,
+    currentFeed: null,
+    unreadCounts,
+    totalUnread,
+    searchTerm,
   });
 });
 

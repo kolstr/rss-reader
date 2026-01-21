@@ -63,6 +63,13 @@ const itemQueries = {
     WHERE items.feed_id = ? 
     ORDER BY items.pub_date DESC
   `),
+  search: db.prepare(`
+    SELECT items.*, feeds.title as feed_title, feeds.color as feed_color, feeds.icon_url as feed_icon
+    FROM items
+    JOIN feeds ON items.feed_id = feeds.id
+    WHERE items.title LIKE ? OR items.description LIKE ? OR items.full_content LIKE ?
+    ORDER BY items.pub_date DESC
+  `),
   getById: db.prepare('SELECT * FROM items WHERE id = ?'),
   getByGuid: db.prepare('SELECT id, link, full_content FROM items WHERE feed_id = ? AND guid = ?'),
   upsert: db.prepare(`
