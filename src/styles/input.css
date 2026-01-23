@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Newspaper font for article content */
+.article-title,
+.article-description,
+.article-full-content {
+  font-family: 'Merriweather', serif;
+}
+
 /* Custom scrollbar styles */
 ::-webkit-scrollbar {
   width: 8px;
