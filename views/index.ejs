@@ -210,11 +210,23 @@
                   
                   <!-- Content -->
                   <a href="<%= item.link %>" target="_blank" rel="noopener noreferrer" class="block article-link" onclick="markAsRead(<%= item.id %>, event)">
-                    <div class="flex gap-4">
+                    <div class="flex flex-col md:flex-row gap-4">
                       <div class="flex-1">
-                        <h3 class="article-title text-lg font-semibold text-gray-800 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition line-clamp-2 mb-2">
-                          <%= item.title %>
-                        </h3>
+                        <!-- Title and image row (mobile) -->
+                        <div class="flex gap-4 mb-2">
+                          <div class="flex-1 min-w-0">
+                            <h3 class="article-title text-lg font-semibold text-gray-800 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition line-clamp-3">
+                              <%= item.title %>
+                            </h3>
+                          </div>
+                          <% if (item.image_url) { %>
+                            <div class="article-image w-20 h-20 md:hidden flex-shrink-0">
+                              <img loading="lazy" src="<%= item.image_url %>" alt="" class="w-full h-full object-cover rounded" onerror="this.parentElement.style.display='none'">
+                            </div>
+                          <% } %>
+                        </div>
+                        
+                        <!-- Description below (mobile) or alongside (desktop) -->
                         <p class="article-description text-gray-600 dark:text-gray-300 text-sm line-clamp-3">
                           <%= item.description %>
                         </p>
@@ -223,8 +235,9 @@
                         </div>
                       </div>
                       
+                      <!-- Image on desktop only -->
                       <% if (item.image_url) { %>
-                        <div class="article-image w-32 h-32 flex-shrink-0">
+                        <div class="article-image hidden md:block w-32 h-32 flex-shrink-0">
                           <img loading="lazy" src="<%= item.image_url %>" alt="" class="w-full h-full object-cover rounded" onerror="this.parentElement.style.display='none'">
                         </div>
                       <% } %>
