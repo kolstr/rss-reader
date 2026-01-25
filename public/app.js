@@ -590,6 +590,7 @@ async function toggleFullContent(itemId, buttonEl) {
       `;
     }
   }
+  updateMarkRemainingButtonVisibility();
 }
 
 // Form submission
