@@ -5,7 +5,8 @@
 /* Newspaper font for article content */
 .article-title,
 .article-description,
-.article-full-content {
+.article-full-content,
+#app_title {
   font-family: 'Merriweather', serif;
 }
 
