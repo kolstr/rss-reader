@@ -10,6 +10,9 @@
   font-family: 'Merriweather', serif;
 }
 
+#app_title {
+  font-variant: small-caps;
+} 
 /* Custom scrollbar styles */
 ::-webkit-scrollbar {
   width: 8px;
