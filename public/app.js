@@ -590,6 +590,7 @@ async function toggleFullContent(itemId, buttonEl) {
       `;
     }
   }
+  updateMarkRemainingButtonVisibility();
 }
 
 // Form submission
@@ -930,7 +931,7 @@ function ensureMarkRemainingButton() {
   const button = document.createElement('button');
   button.type = 'button';
   button.id = 'markRemainingBtn';
-  button.className = 'hidden fixed bottom-4 md:right-8 right-6 z-40 flex items-center bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white p-3 rounded-full text-sm font-medium transition shadow-lg';
+  button.className = 'hidden fixed bottom-4 md:right-8 right-6 z-50 flex items-center bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white p-3 rounded-full text-sm font-medium transition shadow-lg';
   setMarkRemainingButtonLabel(button, false);
   button.addEventListener('click', async () => {
     await markRemainingVisibleAsRead();
@@ -1116,8 +1117,10 @@ function updateMarkRemainingButtonVisibility() {
 
   if (atBottom && allUnread.length > 0) {
     button.classList.remove('hidden');
-    // Hide next card button when at bottom
-    hideNextCardButton();
+    // Hide next card button when at bottom, but only if no article is currently expanded
+    if (!currentExpandedArticle) {
+      hideNextCardButton();
+    }
   } else {
     button.classList.add('hidden');
   }
