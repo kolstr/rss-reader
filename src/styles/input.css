@@ -5,13 +5,14 @@
 /* Newspaper font for article content */
 .article-title,
 .article-description,
-.article-full-content,
-#app_title {
-  font-family: 'Merriweather', serif;
+.article-full-content {
+  font-family: 'Merriweather Sans', sans-serif;
 }
 
 #app_title {
   font-variant: small-caps;
+  font-family: 'Merriweather', serif;
+
 } 
 /* Custom scrollbar styles */
 ::-webkit-scrollbar {
