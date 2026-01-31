@@ -684,13 +684,38 @@ async function detectIconFromFeedUrl(feedUrl) {
   }
 }
 
-// Auto-detect icon when feed URL is entered
-document.getElementById('feedUrl')?.addEventListener('blur', function() {
-  const feedUrl = this.value.trim();
-  if (feedUrl && feedUrl.startsWith('http')) {
-    detectIconFromFeedUrl(feedUrl);
+// Manual auto-fetch function for feed metadata
+async function autoFetchFeedMeta() {
+  const feedUrlInput = document.getElementById('feedUrl');
+  const feedUrl = feedUrlInput?.value.trim();
+  
+  if (!feedUrl) {
+    showAlert('Please enter a feed URL first', 'Missing URL', 'error');
+    return;
   }
-});
+  
+  if (!feedUrl.startsWith('http')) {
+    showAlert('Feed URL must start with http:// or https://', 'Invalid URL', 'error');
+    return;
+  }
+  
+  const btn = document.getElementById('autoFetchBtn');
+  const originalContent = btn?.innerHTML;
+  
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="ml-2">Fetching...</span>';
+    }
+    
+    await detectIconFromFeedUrl(feedUrl);
+  } finally {
+    if (btn && originalContent) {
+      btn.disabled = false;
+      btn.innerHTML = originalContent;
+    }
+  }
+}
 
 // Detect color from icon URL - shared function
 async function detectColorFromIcon() {

@@ -22,6 +22,8 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
 - **Auto-Refresh**: Feeds automatically refresh every 30 minutes via cron job
 - **Dark Mode**: Toggle between light and dark themes with persistent preference
 - **Mobile Responsive**: Sidebar with hamburger menu toggle for mobile devices
+- **Mark as Read by Scroll**: Articles are automatically marked as read when scrolled into view
+- **Full Content Fetching**: Option to fetch and read full article content directly within the feed reader
 
 ## Tech Stack
 
