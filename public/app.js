@@ -1340,6 +1340,12 @@ function markAsRead(itemId, event) {
   const article = document.querySelector(`[data-item-id="${itemId}"]`);
   const feedId = article?.getAttribute('data-feed-id');
   
+  // Don't mark as read if the article is currently expanded (full content is showing)
+  // This prevents marking as read when clicking external links within the full content
+  if (expandedArticles.has(String(itemId))) {
+    return;
+  }
+  
   // Mark as read in background
   fetch(`/api/items/${itemId}/read`, { method: 'POST' })
     .then(() => {
