@@ -19,6 +19,7 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
   - Mark as read/unread functionality
 - **Full Content Fetching**: Option to fetch and read full article content directly within the feed reader
 - **Mobile Responsive**: Sidebar with hamburger menu toggle for mobile devices
+- **Progressive Web App (PWA)**: Installable web app 
 - **Mark as Read by Scroll**: Articles are automatically marked as read when scrolled out of view
 - **Auto Image Extraction**: Automatically extracts images from RSS feeds
 - **Favicon Support**: Auto-fetches feed icons or use custom icon URLs
@@ -27,7 +28,6 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
 - **Auto-Refresh**: Feeds automatically refresh every 30 minutes via cron job
 - **Keyword Filtering**: RSS entries containing these keywords in their title or url will be filtered out and not added to the database.
 - **Dark Mode**: Toggle between light and dark themes with persistent preference
-
 ## Screenshots
 
 <table>
