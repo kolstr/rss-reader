@@ -23,7 +23,24 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
 - **Auto Color Detection**: Automatically extracts dominant color from feed icon (server-side, no CORS issues)
 - **Smart Icon Detection**: Automatically detects icon when you enter feed URL
 - **Auto-Refresh**: Feeds automatically refresh every 30 minutes via cron job
+- **Keyword Filtering**: RSS entries containing these keywords in their title or url will be filtered out and not added to the database.
 - **Dark Mode**: Toggle between light and dark themes with persistent preference
+
+## Screenshots
+
+<table>
+<tr>
+<td rowspan="3"><a href="screenshot_mobile.png"><img src="screenshot_mobile.png" alt="Mobile view of RSS Reader" width="300"></a><br>Mobile view of RSS Reader</td>
+<td><a href="screenshot_desktop.png"><img src="screenshot_desktop.png" alt="Desktop view of RSS Reader" width="300"></a><br>Desktop view of RSS Reader</td>
+</tr>
+<tr>
+<td><a href="screenshot_desktop_2.png"><img src="screenshot_desktop_2.png" alt="Alternate desktop view of RSS Reader" width="300"></a><br>Alternate desktop view of RSS Reader</td>
+</tr>
+<tr>
+<td><a href="screenshot_light.png"><img src="screenshot_light.png" alt="Light desktop view of RSS Reader" width="300"></a><br>Light desktop view of RSS Reader</td>
+</tr>
+</table>
+
 
 ## Tech Stack
 
