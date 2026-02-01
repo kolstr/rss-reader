@@ -1,5 +1,7 @@
 # RSS Reader
 
+<img src="public/assets/192.png" width="64" alt="RSS Reader Icon">
+
 A modern RSS feed reader built with Node.js, EJS templating, SQLite database, and Tailwind CSS.
 
 ## Features
