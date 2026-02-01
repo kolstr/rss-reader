@@ -15,15 +15,15 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
   - Display article title, description, and images
   - Clickable to open in new tab
   - Mark as read/unread functionality
+- **Full Content Fetching**: Option to fetch and read full article content directly within the feed reader
+- **Mobile Responsive**: Sidebar with hamburger menu toggle for mobile devices
+- **Mark as Read by Scroll**: Articles are automatically marked as read when scrolled out of view
 - **Auto Image Extraction**: Automatically extracts images from RSS feeds
 - **Favicon Support**: Auto-fetches feed icons or use custom icon URLs
 - **Auto Color Detection**: Automatically extracts dominant color from feed icon (server-side, no CORS issues)
 - **Smart Icon Detection**: Automatically detects icon when you enter feed URL
 - **Auto-Refresh**: Feeds automatically refresh every 30 minutes via cron job
 - **Dark Mode**: Toggle between light and dark themes with persistent preference
-- **Mobile Responsive**: Sidebar with hamburger menu toggle for mobile devices
-- **Mark as Read by Scroll**: Articles are automatically marked as read when scrolled into view
-- **Full Content Fetching**: Option to fetch and read full article content directly within the feed reader
 
 ## Tech Stack
 
@@ -39,19 +39,22 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
 
 ## Installation
 
+### Using Docker Compose (Recommended)
+
 ```bash
-npm install
+docker-compose up -d
 ```
 
-## Usage
+The application will be available at http://localhost:6789
 
-### Development Mode (with auto-reload and CSS watch)
+
+### Development Mode (Manual)
 
 ```bash
 npm run dev
 ```
 
-### Production Mode
+### Production Mode (Manual)
 
 ```bash
 # Build CSS
@@ -63,29 +66,6 @@ npm start
 
 The application will be available at http://localhost:3000
 
-## Project Structure
-
-```
-rss/
-├── migrations/           # Database migrations
-│   └── 001_init.sql
-├── src/
-│   ├── db.js            # Database connection and queries
-│   ├── server.js        # Express server and routes
-│   ├── services/
-│   │   └── rss.js       # RSS fetching and parsing
-│   └── styles/
-│       └── input.css    # Tailwind input file
-├── views/
-│   ├── layout.ejs       # Base layout
-│   └── index.ejs        # Main page with sidebar and cards
-├── public/
-│   ├── app.js           # Client-side JavaScript
-│   └── styles.css       # Compiled Tailwind CSS
-├── data/
-│   └── app.sqlite       # SQLite database (auto-created)
-└── package.json
-```
 
 ## API Endpoints
 
@@ -118,38 +98,6 @@ rss/
 6. **Manage Read Status**: Use "Mark Read/Unread" buttons to track reading progress
 7. **Dark Mode**: Click the sun/moon icon in the sidebar header to toggle dark mode
 8. **Mobile**: Use the hamburger menu (☰) to show/hide the sidebar on mobile devices
-
-## Example RSS Feeds
-
-Here are some popular RSS feeds you can add:
-
-- **Hacker News**: https://news.ycombinator.com/rss
-- **Reddit Programming**: https://www.reddit.com/r/programming/.rss
-- **TechCrunch**: https://techcrunch.com/feed/
-- **Ars Technica**: https://feeds.arstechnica.com/arstechnica/index
-- **The Verge**: https://www.theverge.com/rss/index.xml
-
-## Database Schema
-
-### Feeds Table
-- `id`: Primary key
-- `title`: Feed name
-- `url`: RSS feed URL
-- `icon_url`: Feed icon/favicon URL
-- `color`: Color code for visual identification
-- `created_at`, `updated_at`: Timestamps
-
-### Items Table
-- `id`: Primary key
-- `feed_id`: Foreign key to feeds
-- `guid`: Unique identifier from feed
-- `title`: Item title
-- `link`: Item URL
-- `description`: Item description/summary
-- `image_url`: Article image
-- `pub_date`: Publication date
-- `read_at`: Timestamp when marked as read
-- `created_at`: Timestamp
 
 ## License
 

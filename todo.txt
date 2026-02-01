@@ -1,4 +1,0 @@
--
-- image löschen vor docker compose up?
-- icon
-- pwa
