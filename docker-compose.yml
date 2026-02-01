@@ -7,7 +7,7 @@ services:
       - "6789:6789"
     volumes:
       # Persist SQLite database
-      - /home/pi/rss-reader-data:/app/data
+      - ~/rss-reader-data:/app/data
     environment:
       - NODE_ENV=production
       - PORT=6789

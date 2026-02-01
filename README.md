@@ -36,7 +36,7 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
 <td><a href="screenshot_desktop.png"><img src="screenshot_desktop.png" alt="Desktop view of RSS Reader" width="300"></a><br>Desktop view of RSS Reader</td>
 </tr>
 <tr>
-<td><a href="screenshot_desktop_2.png"><img src="screenshot_desktop_2.png" alt="Alternate desktop view of RSS Reader" width="300"></a><br>Alternate desktop view of RSS Reader</td>
+<td><a href="screenshot_desktop_2.png"><img src="screenshot_desktop_2.png" alt="Expanded article" width="300"></a><br>Expanded article</td>
 </tr>
 <tr>
 <td><a href="screenshot_light.png"><img src="screenshot_light.png" alt="Light desktop view of RSS Reader" width="300"></a><br>Light desktop view of RSS Reader</td>
