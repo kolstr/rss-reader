@@ -32,8 +32,11 @@ async function extractArticleContent(url) {
 
   try {
     const { extract } = await getExtractor();
-    const article = await extract(url, {
-      timeout: 15000,
+    const article = await extract(url, {}, {
+      headers: {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      },
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!article || !article.content) {
