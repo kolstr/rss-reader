@@ -50,6 +50,7 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
 - **Templating**: EJS
 - **Database**: SQLite (better-sqlite3)
 - **RSS Parsing**: rss-parser
+- **Full Content Fetching**: [article-extractor](https://github.com/extractus/article-extractor)
 - **Image Processing**: Jimp (for color extraction) + icojs (for .ico conversion)
 - **HTTP Client**: Axios (for fetching icons)
 - **Styling**: Tailwind CSS (with dark mode)
