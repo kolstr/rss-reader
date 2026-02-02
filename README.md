@@ -25,7 +25,7 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
 - **Favicon Support**: Auto-fetches feed icons or use custom icon URLs
 - **Auto Color Detection**: Automatically extracts dominant color from feed icon (server-side, no CORS issues)
 - **Smart Icon Detection**: Automatically detects icon when you enter feed URL
-- **Auto-Refresh**: Feeds automatically refresh every 30 minutes via cron job
+- **Auto-Refresh**: Feeds automatically refresh every 30 minutes via cron job. Articles older than 3 days are automatically removed.
 - **Keyword Filtering**: RSS entries containing these keywords in their title or url will be filtered out and not added to the database.
 - **Dark Mode**: Toggle between light and dark themes with persistent preference
 ## Screenshots
