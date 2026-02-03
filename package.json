@@ -7,8 +7,9 @@
   "scripts": {
     "dev": "concurrently \"npm run watch:css\" \"nodemon src/server.js\"",
     "start": "node src/server.js",
-    "build:css": "tailwindcss -i ./src/styles/input.css -o ./public/styles.css --minify",
-    "watch:css": "tailwindcss -i ./src/styles/input.css -o ./public/styles.css --watch"
+    "copy:icons": "cp -r node_modules/bootstrap-icons/font/fonts public/",
+    "build:css": "npm run copy:icons && tailwindcss -i ./src/styles/input.css -o ./public/styles.css --minify",
+    "watch:css": "npm run copy:icons && tailwindcss -i ./src/styles/input.css -o ./public/styles.css --watch"
   },
   "keywords": [
     "rss",
@@ -21,6 +22,7 @@
     "@extractus/article-extractor": "^8.0.20",
     "axios": "^1.13.2",
     "better-sqlite3": "^11.7.0",
+    "bootstrap-icons": "^1.11.3",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
     "icojs": "^0.20.1",

@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cron = require('node-cron');
-const { db, feedQueries, itemQueries, statsQueries, filterKeywordQueries } = require('./db');
+const { db, folderQueries, feedQueries, itemQueries, statsQueries, filterKeywordQueries } = require('./db');
 const { refreshFeed, refreshAllFeeds, getFaviconUrl } = require('./services/rss');
 const { detectIconAndColor } = require('./services/iconDetector');
 
@@ -27,32 +27,54 @@ function getUnreadCounts(feeds) {
   return counts;
 }
 
+function getFolderUnreadCounts(folders) {
+  const counts = {};
+  for (const folder of folders) {
+    const result = statsQueries.getUnreadCountByFolder.get(folder.id);
+    counts[folder.id] = result ? result.count : 0;
+  }
+  return counts;
+}
+
 // Routes
 
 // Home page - show all items or items from a specific feed
 app.get('/', (req, res) => {
   const feedId = req.query.feed;
+  const folderId = req.query.folder;
   const feeds = feedQueries.getAll.all();
+  const folders = folderQueries.getAll.all();
   const unreadCounts = getUnreadCounts(feeds);
+  const folderUnreadCounts = getFolderUnreadCounts(folders);
   const totalUnread = statsQueries.getUnreadCount.get().count;
-  
+
   let items;
   let currentFeed = null;
-  
+  let currentFolder = null;
+
   if (feedId) {
     items = itemQueries.getByFeed.all(feedId);
     currentFeed = feedQueries.getById.get(feedId);
+  } else if (folderId) {
+    items = itemQueries.getByFolder.all(folderId);
+    currentFolder = folderQueries.getById.get(folderId);
   } else {
     items = itemQueries.getAll.all();
   }
-  
+
+  const defaultFolder = folderQueries.getDefault.get();
+
   res.render('index', {
     feeds,
+    folders,
     items,
     currentFeed,
+    currentFolder,
     unreadCounts,
+    folderUnreadCounts,
     totalUnread,
     searchTerm: '',
+    defaultFolderId: defaultFolder ? defaultFolder.id : null,
   });
 });
 
@@ -64,7 +86,9 @@ app.post('/search', (req, res) => {
   }
 
   const feeds = feedQueries.getAll.all();
+  const folders = folderQueries.getAll.all();
   const unreadCounts = getUnreadCounts(feeds);
+  const folderUnreadCounts = getFolderUnreadCounts(folders);
   const totalUnread = statsQueries.getUnreadCount.get().count;
 
   const likeTerm = `%${searchTerm}%`;
@@ -74,9 +98,13 @@ app.post('/search', (req, res) => {
     feeds,
     items,
     currentFeed: null,
+    currentFolder: null,
     unreadCounts,
+    folderUnreadCounts,
     totalUnread,
     searchTerm,
+    folders,
+    defaultFolderId: folderQueries.getDefault.get()?.id || null,
   });
 });
 
@@ -85,6 +113,13 @@ app.get('/api/feeds', (req, res) => {
   const feeds = feedQueries.getAll.all();
   const unreadCounts = getUnreadCounts(feeds);
   res.json({ feeds, unreadCounts });
+});
+
+// API: Get all folders
+app.get('/api/folders', (req, res) => {
+  const folders = folderQueries.getAll.all();
+  const unreadCounts = getFolderUnreadCounts(folders);
+  res.json({ folders, unreadCounts });
 });
 
 // API: Fetch feed metadata from URL
@@ -184,7 +219,7 @@ app.post('/api/feeds/detect-color-from-icon', async (req, res) => {
 
 // API: Create a new feed
 app.post('/api/feeds', async (req, res) => {
-  const { title, url, color, fetch_content } = req.body;
+  const { title, url, color, fetch_content, folder_id } = req.body;
   
   if (!title || !url) {
     return res.status(400).json({ error: 'Title and URL are required' });
@@ -193,7 +228,9 @@ app.post('/api/feeds', async (req, res) => {
   try {
     const iconUrl = getFaviconUrl(url);
     const fetchContentValue = fetch_content ? 1 : 0;
-    const result = feedQueries.create.run(title, url, iconUrl, color || '#3b82f6', fetchContentValue);
+    const defaultFolder = folderQueries.getDefault.get();
+    const folderIdValue = folder_id || (defaultFolder ? defaultFolder.id : null);
+    const result = feedQueries.create.run(title, url, iconUrl, color || '#3b82f6', fetchContentValue, folderIdValue);
     
     // Fetch initial items (with content fetching if enabled)
     await refreshFeed(result.lastInsertRowid, url, fetchContentValue === 1);
@@ -207,7 +244,7 @@ app.post('/api/feeds', async (req, res) => {
 // API: Update a feed
 app.put('/api/feeds/:id', (req, res) => {
   const { id } = req.params;
-  const { title, url, icon_url, color, fetch_content } = req.body;
+  const { title, url, icon_url, color, fetch_content, folder_id } = req.body;
   
   if (!title || !url) {
     return res.status(400).json({ error: 'Title and URL are required' });
@@ -215,7 +252,67 @@ app.put('/api/feeds/:id', (req, res) => {
   
   try {
     const fetchContentValue = fetch_content ? 1 : 0;
-    feedQueries.update.run(title, url, icon_url, color || '#3b82f6', fetchContentValue, id);
+    const defaultFolder = folderQueries.getDefault.get();
+    const folderIdValue = folder_id || (defaultFolder ? defaultFolder.id : null);
+    feedQueries.update.run(title, url, icon_url, color || '#3b82f6', fetchContentValue, folderIdValue, id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Create a folder
+app.post('/api/folders', (req, res) => {
+  const { label, icon } = req.body;
+
+  if (!label) {
+    return res.status(400).json({ error: 'Label is required' });
+  }
+
+  try {
+    const result = folderQueries.create.run(label, icon || 'folder', 0);
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Update a folder
+app.put('/api/folders/:id', (req, res) => {
+  const { id } = req.params;
+  const { label, icon } = req.body;
+
+  if (!label) {
+    return res.status(400).json({ error: 'Label is required' });
+  }
+
+  try {
+    folderQueries.update.run(label, icon || 'folder', id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Delete a folder (moves feeds to default)
+app.delete('/api/folders/:id', (req, res) => {
+  const { id } = req.params;
+  const folder = folderQueries.getById.get(id);
+  const defaultFolder = folderQueries.getDefault.get();
+
+  if (!folder) {
+    return res.status(404).json({ error: 'Folder not found' });
+  }
+
+  if (folder.is_default === 1) {
+    return res.status(400).json({ error: 'Default folder cannot be deleted' });
+  }
+
+  try {
+    if (defaultFolder) {
+      db.prepare('UPDATE feeds SET folder_id = ? WHERE folder_id = ?').run(defaultFolder.id, id);
+    }
+    folderQueries.delete.run(id);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -9,6 +9,7 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
 - **Feed Management**: Add, edit, and delete RSS feeds via a settings modal
 - **Aggregated View**: View all items from all feeds in one place via the "All" feed
 - **Feed Sidebar**: Browse individual feeds with unread counts
+- **Folders**: Group feeds into collapsible folders with icons, unread badges, and persistent collapse state
 - **Visual Indicators**: 
   - Colored left border on cards indicates the source feed
   - Gray border for read items
@@ -86,20 +87,6 @@ npm start
 
 The application will be available at http://localhost:3000
 
-
-## API Endpoints
-
-- `GET /` - Main page (all items or filtered by feed)
-- `GET /api/feeds` - Get all feeds
-- `POST /api/feeds/detect-icon` - Detect icon and color from feed URL
-- `POST /api/feeds` - Create a new feed
-- `PUT /api/feeds/:id` - Update a feed
-- `DELETE /api/feeds/:id` - Delete a feed
-- `POST /api/feeds/:id/refresh` - Refresh a specific feed
-- `POST /api/feeds/refresh-all` - Refresh all feeds
-- `POST /api/items/:id/read` - Mark item as read
-- `POST /api/items/:id/unread` - Mark item as unread
-
 ## How to Use
 
 1. **Add a Feed**: Click the "Add Feed" button in the sidebar
@@ -108,16 +95,22 @@ The application will be available at http://localhost:3000
    - Enter the RSS/Atom feed URL and tab out - the icon and color will be auto-detected
    - The icon URL and color fields will be automatically filled
    - Manually adjust if desired
+   - Choose a folder to organize the feed
 3. **Refresh Feeds**: 
    - Click "Refresh All" to fetch latest items manually
    - Feeds automatically refresh every 30 minutes in the background
 4. **Browse Items**: 
    - Click "All" to see items from all feeds
    - Click individual feeds to filter by source
-5. **Read Items**: Click any card to open the article in a new tab
-6. **Manage Read Status**: Use "Mark Read/Unread" buttons to track reading progress
-7. **Dark Mode**: Click the sun/moon icon in the sidebar header to toggle dark mode
-8. **Mobile**: Use the hamburger menu (☰) to show/hide the sidebar on mobile devices
+   - Click a folder to view items from all feeds in that folder
+5. **Folders**:
+   - Click "Add Folder" to create a folder and pick an icon name from https://icons.getbootstrap.com/
+   - Hover a folder and click the gear icon to edit
+   - Collapse/expand folders; the state is saved in your browser
+6. **Read Items**: Click any card to open the article in a new tab
+7. **Manage Read Status**: Use "Mark Read/Unread" buttons to track reading progress
+8. **Dark Mode**: Click the sun/moon icon in the sidebar header to toggle dark mode
+9. **Mobile**: Use the hamburger menu (☰) to show/hide the sidebar on mobile devices
 
 ## License
 

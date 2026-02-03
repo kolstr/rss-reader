@@ -1,3 +1,5 @@
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -63,6 +65,19 @@
 }
 
 .feed-item-container:hover .feed-icon {
+  display: none;
+}
+
+/* Folder item icon hover swap */
+.folder-item-container .settings-icon {
+  display: none;
+}
+
+.folder-item-container:hover .settings-icon {
+  display: block;
+}
+
+.folder-item-container:hover .folder-icon {
   display: none;
 }
 

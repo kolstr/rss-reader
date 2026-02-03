@@ -17,34 +17,62 @@ db.pragma('foreign_keys = ON');
 // Run migrations
 function runMigrations() {
   const migrationsDir = path.join(__dirname, '..', 'migrations');
-  
+
   if (!fs.existsSync(migrationsDir)) {
     console.log('No migrations directory found');
     return;
   }
-  
+
+  // Track applied migrations
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS migrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      filename TEXT NOT NULL UNIQUE,
+      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  const applied = new Set(
+    db.prepare('SELECT filename FROM migrations').all().map(row => row.filename)
+  );
+
   const files = fs.readdirSync(migrationsDir)
     .filter(f => f.endsWith('.sql'))
     .sort();
-  
+
   for (const file of files) {
+    if (applied.has(file)) {
+      continue;
+    }
+
     console.log(`Running migration: ${file}`);
     const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
     db.exec(sql);
+    db.prepare('INSERT INTO migrations (filename) VALUES (?)').run(file);
   }
-  
+
   console.log('Migrations completed');
 }
 
 // Initialize database
 runMigrations();
 
+// Folder queries
+const folderQueries = {
+  getAll: db.prepare('SELECT * FROM folders ORDER BY label'),
+  getById: db.prepare('SELECT * FROM folders WHERE id = ?'),
+  getDefault: db.prepare('SELECT * FROM folders WHERE is_default = 1 LIMIT 1'),
+  create: db.prepare('INSERT INTO folders (label, icon, is_default) VALUES (?, ?, ?)'),
+  update: db.prepare('UPDATE folders SET label = ?, icon = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'),
+  delete: db.prepare('DELETE FROM folders WHERE id = ?'),
+};
+
 // Feed queries
 const feedQueries = {
   getAll: db.prepare('SELECT * FROM feeds ORDER BY title'),
   getById: db.prepare('SELECT * FROM feeds WHERE id = ?'),
-  create: db.prepare('INSERT INTO feeds (title, url, icon_url, color, fetch_content) VALUES (?, ?, ?, ?, ?)'),
-  update: db.prepare('UPDATE feeds SET title = ?, url = ?, icon_url = ?, color = ?, fetch_content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'),
+  create: db.prepare('INSERT INTO feeds (title, url, icon_url, color, fetch_content, folder_id) VALUES (?, ?, ?, ?, ?, ?)'),
+  update: db.prepare('UPDATE feeds SET title = ?, url = ?, icon_url = ?, color = ?, fetch_content = ?, folder_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'),
   delete: db.prepare('DELETE FROM feeds WHERE id = ?'),
 };
 
@@ -61,6 +89,13 @@ const itemQueries = {
     FROM items 
     JOIN feeds ON items.feed_id = feeds.id 
     WHERE items.feed_id = ? 
+    ORDER BY items.pub_date DESC
+  `),
+  getByFolder: db.prepare(`
+    SELECT items.*, feeds.title as feed_title, feeds.color as feed_color, feeds.icon_url as feed_icon
+    FROM items
+    JOIN feeds ON items.feed_id = feeds.id
+    WHERE feeds.folder_id = ?
     ORDER BY items.pub_date DESC
   `),
   search: db.prepare(`
@@ -96,6 +131,12 @@ const itemQueries = {
 const statsQueries = {
   getUnreadCount: db.prepare('SELECT COUNT(*) as count FROM items WHERE read_at IS NULL'),
   getUnreadCountByFeed: db.prepare('SELECT COUNT(*) as count FROM items WHERE feed_id = ? AND read_at IS NULL'),
+  getUnreadCountByFolder: db.prepare(`
+    SELECT COUNT(*) as count
+    FROM items
+    JOIN feeds ON items.feed_id = feeds.id
+    WHERE feeds.folder_id = ? AND items.read_at IS NULL
+  `),
 };
 
 // Filter keyword queries
@@ -105,8 +146,23 @@ const filterKeywordQueries = {
   delete: db.prepare('DELETE FROM filter_keywords WHERE id = ?'),
 };
 
+function ensureDefaultFolder() {
+  let defaultFolder = folderQueries.getDefault.get();
+  if (!defaultFolder) {
+    folderQueries.create.run('Default', 'folder', 1);
+    defaultFolder = folderQueries.getDefault.get();
+  }
+
+  if (defaultFolder) {
+    db.prepare('UPDATE feeds SET folder_id = ? WHERE folder_id IS NULL').run(defaultFolder.id);
+  }
+}
+
+ensureDefaultFolder();
+
 module.exports = {
   db,
+  folderQueries,
   feedQueries,
   itemQueries,
   statsQueries,

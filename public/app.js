@@ -1,6 +1,13 @@
 // Modal management
 let currentFeedId = null;
 let confirmCallback = null;
+let currentFolderId = null;
+let currentFolderIsDefault = false;
+
+function getDefaultFolderId() {
+  const value = document.body?.getAttribute('data-default-folder-id');
+  return value ? value : null;
+}
 
 // Show read toggle management
 let showRead = localStorage.getItem('showRead') !== 'false'; // default true
@@ -168,6 +175,32 @@ function updateUnreadCounts(feedId, increment = false) {
       link?.appendChild(badge);
     }
   }
+
+  // Update folder badge
+  const folderId = feedEl?.getAttribute('data-folder-id');
+  if (folderId) {
+    const folderSection = document.querySelector(`.folder-section[data-folder-id="${folderId}"]`);
+    const folderBadge = folderSection?.querySelector('[data-folder-unread]');
+    if (folderBadge) {
+      const currentCount = parseInt(folderBadge.textContent);
+      const newCount = increment ? currentCount + 1 : Math.max(0, currentCount - 1);
+
+      if (newCount === 0) {
+        folderBadge.remove();
+      } else {
+        folderBadge.textContent = newCount;
+      }
+    } else if (increment) {
+      const folderLink = folderSection?.querySelector('a');
+      if (folderLink) {
+        const badge = document.createElement('span');
+        badge.className = 'folder-unread-badge text-xs px-2 py-1 rounded-full bg-blue-500 dark:bg-blue-600 text-white';
+        badge.setAttribute('data-folder-unread', folderId);
+        badge.textContent = '1';
+        folderLink.appendChild(badge);
+      }
+    }
+  }
   
   // Update total unread badge
   const totalBadge = document.getElementById('totalUnreadBadge');
@@ -283,6 +316,12 @@ function openSettingsModal() {
   document.getElementById('feedId').value = '';
   document.getElementById('deleteFeedBtn').classList.add('hidden');
   document.getElementById('settingsModal').classList.remove('hidden');
+
+  const folderSelect = document.getElementById('feedFolder');
+  const defaultFolderId = getDefaultFolderId();
+  if (folderSelect && defaultFolderId) {
+    folderSelect.value = defaultFolderId;
+  }
   
   // Reset fetch content toggle
   setFetchContentToggle(false);
@@ -297,7 +336,53 @@ function setupUrlAutoFetch() {
   // Users must click the "Fetch" button to auto-detect metadata
 }
 
-function editFeed(id, title, url, iconUrl, color, fetchContent) {
+// Folder collapse state
+const folderCollapseStorageKey = 'folderCollapseState';
+
+function getFolderCollapseState() {
+  try {
+    const value = localStorage.getItem(folderCollapseStorageKey);
+    return value ? JSON.parse(value) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveFolderCollapseState(state) {
+  localStorage.setItem(folderCollapseStorageKey, JSON.stringify(state));
+}
+
+function setFolderCollapsed(folderId, collapsed) {
+  const feedsEl = document.querySelector(`[data-folder-feeds="${folderId}"]`);
+  const caret = document.querySelector(`[data-folder-caret="${folderId}"]`);
+  if (feedsEl) {
+    feedsEl.classList.toggle('hidden', collapsed);
+  }
+  if (caret) {
+    caret.style.transition = 'transform 150ms ease';
+    caret.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+  }
+}
+
+function toggleFolderCollapse(folderId) {
+  const state = getFolderCollapseState();
+  const nextCollapsed = !state[folderId];
+  state[folderId] = nextCollapsed;
+  saveFolderCollapseState(state);
+  setFolderCollapsed(folderId, nextCollapsed);
+}
+
+function initFolderCollapseState() {
+  const state = getFolderCollapseState();
+  document.querySelectorAll('[data-folder-feeds]').forEach((feedsEl) => {
+    const folderId = feedsEl.getAttribute('data-folder-feeds');
+    if (!folderId) return;
+    const collapsed = !!state[folderId];
+    setFolderCollapsed(folderId, collapsed);
+  });
+}
+
+function editFeed(id, title, url, iconUrl, color, fetchContent, folderId) {
   currentFeedId = id;
   document.getElementById('modalTitle').textContent = 'Edit Feed';
   document.getElementById('feedId').value = id;
@@ -307,6 +392,13 @@ function editFeed(id, title, url, iconUrl, color, fetchContent) {
   document.getElementById('feedColor').value = color;
   document.getElementById('deleteFeedBtn').classList.remove('hidden');
   document.getElementById('settingsModal').classList.remove('hidden');
+
+  const folderSelect = document.getElementById('feedFolder');
+  const defaultFolderId = getDefaultFolderId();
+  const normalizedFolderId = folderId && folderId !== 'null' ? folderId : null;
+  if (folderSelect) {
+    folderSelect.value = normalizedFolderId || defaultFolderId || folderSelect.value;
+  }
   
   // Set fetch content toggle
   setFetchContentToggle(fetchContent === 1);
@@ -318,6 +410,80 @@ function editFeed(id, title, url, iconUrl, color, fetchContent) {
 function closeSettingsModal() {
   document.getElementById('settingsModal').classList.add('hidden');
   currentFeedId = null;
+}
+
+// Folder modal functions
+function normalizeBootstrapIcon(value) {
+  let icon = (value || '').trim();
+  if (!icon) return 'folder';
+  icon = icon.replace(/^bi\s+/, '');
+  icon = icon.replace(/^bi-/, '');
+  return icon;
+}
+
+function updateFolderIconPreview(value) {
+  const preview = document.getElementById('folderIconPreview');
+  if (!preview) return;
+  const icon = normalizeBootstrapIcon(value);
+  preview.innerHTML = `<i class="bi bi-${icon}"></i>`;
+}
+
+function openFolderModal() {
+  currentFolderId = null;
+  currentFolderIsDefault = false;
+  document.getElementById('folderModalTitle').textContent = 'Add Folder';
+  document.getElementById('folderForm').reset();
+  document.getElementById('folderId').value = '';
+  document.getElementById('deleteFolderBtn').classList.add('hidden');
+  document.getElementById('folderModal').classList.remove('hidden');
+  const iconInput = document.getElementById('folderIcon');
+  if (iconInput) iconInput.value = 'folder';
+  updateFolderIconPreview('folder');
+}
+
+function editFolder(id, label, icon, isDefault) {
+  currentFolderId = id;
+  currentFolderIsDefault = isDefault === 1;
+  document.getElementById('folderModalTitle').textContent = 'Edit Folder';
+  document.getElementById('folderId').value = id;
+  document.getElementById('folderLabel').value = label;
+  document.getElementById('folderIcon').value = icon || 'folder';
+  document.getElementById('folderModal').classList.remove('hidden');
+
+  if (currentFolderIsDefault) {
+    document.getElementById('deleteFolderBtn').classList.add('hidden');
+  } else {
+    document.getElementById('deleteFolderBtn').classList.remove('hidden');
+  }
+  updateFolderIconPreview(icon || 'folder');
+}
+
+function closeFolderModal() {
+  document.getElementById('folderModal').classList.add('hidden');
+  currentFolderId = null;
+  currentFolderIsDefault = false;
+}
+
+async function deleteFolder() {
+  if (!currentFolderId || currentFolderIsDefault) return;
+
+  showConfirm('Delete this folder? Feeds inside will be moved to the default folder.', 'Delete Folder', async () => {
+    try {
+      const response = await fetch(`/api/folders/${currentFolderId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        closeFolderModal();
+        window.location.reload();
+      } else {
+        const error = await response.json();
+        showAlert('Error: ' + error.error, 'Error', 'error');
+      }
+    } catch (error) {
+      showAlert('Error: ' + error.message, 'Error', 'error');
+    }
+  });
 }
 
 // Filter modal functions
@@ -576,6 +742,7 @@ document.getElementById('feedForm')?.addEventListener('submit', async (e) => {
     icon_url: document.getElementById('feedIcon').value,
     color: document.getElementById('feedColor').value,
     fetch_content: document.getElementById('feedFetchContent').value === '1',
+    folder_id: document.getElementById('feedFolder')?.value || null,
   };
   
   try {
@@ -610,6 +777,55 @@ document.getElementById('feedForm')?.addEventListener('submit', async (e) => {
     submitBtn.innerHTML = originalBtnContent;
     showAlert('Error: ' + error.message, 'Error', 'error');
   }
+});
+
+// Folder form submission
+document.getElementById('folderForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnContent = submitBtn.innerHTML;
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = 'Saving...';
+
+  const label = document.getElementById('folderLabel').value.trim();
+  const iconRaw = document.getElementById('folderIcon').value.trim();
+  const icon = normalizeBootstrapIcon(iconRaw);
+
+  try {
+    let response;
+    if (currentFolderId) {
+      response = await fetch(`/api/folders/${currentFolderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label, icon }),
+      });
+    } else {
+      response = await fetch('/api/folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label, icon }),
+      });
+    }
+
+    if (response.ok) {
+      closeFolderModal();
+      window.location.reload();
+    } else {
+      const error = await response.json();
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnContent;
+      showAlert('Error: ' + error.error, 'Error', 'error');
+    }
+  } catch (error) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnContent;
+    showAlert('Error: ' + error.message, 'Error', 'error');
+  }
+});
+
+document.getElementById('folderIcon')?.addEventListener('input', (e) => {
+  updateFolderIconPreview(e.target.value);
 });
 
 // Detect icon and color from feed URL (server-side)
@@ -778,6 +994,7 @@ function setupIconColorDetection() {
 
 // Initialize icon color detection on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', setupIconColorDetection);
+document.addEventListener('DOMContentLoaded', initFolderCollapseState);
 document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('main').focus();
 
@@ -1469,6 +1686,12 @@ document.getElementById('alertModal')?.addEventListener('click', (e) => {
 document.getElementById('filterModal')?.addEventListener('click', (e) => {
   if (e.target.id === 'filterModal') {
     closeFilterModal();
+  }
+});
+
+document.getElementById('folderModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'folderModal') {
+    closeFolderModal();
   }
 });
 

@@ -35,7 +35,7 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/png" href="assets/192.png">  
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 min-h-screen md:h-screen md:overflow-hidden">
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen md:h-screen md:overflow-hidden" data-default-folder-id="<%= defaultFolderId || '' %>">
   <!-- Mobile menu button -->
   <button onclick="toggleSidebar()" class="md:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
     <svg id="mobileMenuHamburger" class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,6 +79,10 @@
           </svg>
           Add Feed
         </button>
+        <button onclick="openFolderModal()" class="mt-2 w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition flex items-center justify-start gap-2">
+          <i class="bi bi-folder-plus text-base"></i>
+          Add Folder
+        </button>
         <button onclick="openFilterModal()" class="mt-2 w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition flex items-center justify-start gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
@@ -111,7 +115,7 @@
       <!-- Feed list -->
       <nav class="flex-1 overflow-y-auto p-2">
         <!-- All feeds -->
-        <a href="/" class="flex items-center px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition <%= !currentFeed ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300' %>">
+        <a href="/" class="flex items-center px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition <%= (!currentFeed && !currentFolder) ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300' %>">
           <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
           </svg>
@@ -121,31 +125,60 @@
           <% } %>
         </a>
         
-        <!-- Individual feeds -->
-        <div class="mt-2 space-y-1">
-          <% feeds.forEach(feed => { %>
-            <div class="feed-item-container relative" data-feed-id="<%= feed.id %>">
-              <a href="/?feed=<%= feed.id %>" class="flex items-center px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition <%= currentFeed && currentFeed.id === feed.id ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300' %>">
-                <!-- Icon container that swaps with settings icon on hover -->
-                <div class="w-5 h-5 mr-3 flex items-center justify-center relative">
-                  <% if (feed.icon_url) { %>
-                    <img src="<%= feed.icon_url %>" alt="" class="feed-icon w-5 h-5 rounded" onerror="this.style.display='none'">
-                  <% } else { %>
-                    <div class="feed-icon w-5 h-5 rounded" style="background-color: <%= feed.color %>"></div>
+        <!-- Folders and feeds -->
+        <div class="mt-2 space-y-2">
+          <% folders.forEach(folder => { %>
+            <div class="folder-section" data-folder-id="<%= folder.id %>">
+              <div class="folder-item-container relative">
+                <a href="/?folder=<%= folder.id %>" class="flex items-center px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition <%= currentFolder && currentFolder.id === folder.id ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300' %>">
+                  <button type="button" class="mr-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" onclick="event.preventDefault(); event.stopPropagation(); toggleFolderCollapse(<%= folder.id %>)" aria-label="Toggle folder">
+                    <svg class="w-4 h-4" data-folder-caret="<%= folder.id %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  <div class="w-5 h-5 mr-2 flex items-center justify-center relative">
+                    <% const folderIconName = (folder.icon || 'folder').replace(/^bi-/, ''); %>
+                    <i class="folder-icon bi bi-<%= folderIconName %>"></i>
+                    <svg onclick="event.preventDefault(); event.stopPropagation(); editFolder(<%= folder.id %>, '<%= folder.label.replace(/'/g, "\\'") %>', '<%= folderIconName.replace(/'/g, "\\'") %>', <%= folder.is_default || 0 %>)"
+                         class="settings-icon w-5 h-5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer absolute inset-0"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                  </div>
+                  <span class="flex-1 truncate text-sm"><%= folder.label %></span>
+                  <% if (folderUnreadCounts[folder.id] > 0) { %>
+                    <span class="folder-unread-badge text-xs px-2 py-1 rounded-full bg-blue-500 dark:bg-blue-600 text-white" data-folder-unread="<%= folder.id %>"><%= folderUnreadCounts[folder.id] %></span>
                   <% } %>
-                  <!-- Settings icon appears on hover -->
-                  <svg onclick="event.preventDefault(); event.stopPropagation(); editFeed(<%= feed.id %>, '<%= feed.title.replace(/'/g, "\\'") %>', '<%= feed.url.replace(/'/g, "\\'") %>', '<%= feed.icon_url ? feed.icon_url.replace(/'/g, "\\'") : '' %>', '<%= feed.color %>', <%= feed.fetch_content || 0 %>)" 
-                       class="settings-icon w-5 h-5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer absolute inset-0" 
-                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  </svg>
-                </div>
-                <span class="flex-1 truncate text-sm"><%= feed.title %></span>
-                <% if (unreadCounts[feed.id] > 0) { %>
-                  <span class="feed-unread-badge text-xs px-2 py-1 rounded-full" style="background-color: <%= feed.color %>; color: white;"><%= unreadCounts[feed.id] %></span>
-                <% } %>
-              </a>
+                </a>
+              </div>
+              <div class="folder-feeds mt-1 space-y-1 pl-6" data-folder-feeds="<%= folder.id %>">
+                <% feeds.filter(feed => feed.folder_id === folder.id).forEach(feed => { %>
+                  <div class="feed-item-container relative" data-feed-id="<%= feed.id %>" data-folder-id="<%= folder.id %>">
+                    <a href="/?feed=<%= feed.id %>" class="flex items-center px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition <%= currentFeed && currentFeed.id === feed.id ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300' %>">
+                      <!-- Icon container that swaps with settings icon on hover -->
+                      <div class="w-5 h-5 mr-3 flex items-center justify-center relative">
+                        <% if (feed.icon_url) { %>
+                          <img src="<%= feed.icon_url %>" alt="" class="feed-icon w-5 h-5 rounded" onerror="this.style.display='none'">
+                        <% } else { %>
+                          <div class="feed-icon w-5 h-5 rounded" style="background-color: <%= feed.color %>"></div>
+                        <% } %>
+                        <!-- Settings icon appears on hover -->
+                        <svg onclick="event.preventDefault(); event.stopPropagation(); editFeed(<%= feed.id %>, '<%= feed.title.replace(/'/g, "\\'") %>', '<%= feed.url.replace(/'/g, "\\'") %>', '<%= feed.icon_url ? feed.icon_url.replace(/'/g, "\\'") : '' %>', '<%= feed.color %>', <%= feed.fetch_content || 0 %>, <%= feed.folder_id || 'null' %>)" 
+                             class="settings-icon w-5 h-5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer absolute inset-0" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                      </div>
+                      <span class="flex-1 truncate text-sm"><%= feed.title %></span>
+                      <% if (unreadCounts[feed.id] > 0) { %>
+                        <span class="feed-unread-badge text-xs px-2 py-1 rounded-full" style="background-color: <%= feed.color %>; color: white;"><%= unreadCounts[feed.id] %></span>
+                      <% } %>
+                    </a>
+                  </div>
+                <% }) %>
+              </div>
             </div>
           <% }) %>
         </div>
@@ -162,7 +195,7 @@
         <div class="mb-6">
           <div>
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
-              <%= searchTerm ? 'Search results' : (currentFeed ? currentFeed.title : 'All Feeds') %>
+              <%= searchTerm ? 'Search results' : (currentFeed ? currentFeed.title : (currentFolder ? currentFolder.label : 'All Feeds')) %>
             </h2>
             <% if (searchTerm) { %>
               <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Results for "<%= searchTerm %>"</p>
@@ -351,6 +384,18 @@
             <input type="color" id="feedColor" name="color" value="#3b82f6"
                    class="w-full h-10 rounded cursor-pointer">
           </div>
+
+          <div>
+            <label for="feedFolder" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Folder
+            </label>
+            <select id="feedFolder" name="folder_id"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <% folders.forEach(folder => { %>
+                <option value="<%= folder.id %>" <%= defaultFolderId && folder.id === defaultFolderId ? 'selected' : '' %>><%= folder.label %></option>
+              <% }) %>
+            </select>
+          </div>
           
           <div class="flex items-center justify-between">
             <div>
@@ -382,6 +427,55 @@
     </div>
   </div>
   
+  <!-- Folder Modal -->
+  <div id="folderModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4" onclick="event.stopPropagation()">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-bold text-gray-800 dark:text-white" id="folderModalTitle">Add Folder</h3>
+          <button onclick="closeFolderModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <form id="folderForm" class="space-y-4">
+          <input type="hidden" id="folderId" name="folderId">
+
+          <div>
+            <label for="folderLabel" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Label</label>
+            <input type="text" id="folderLabel" name="label" required
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+
+            <div>
+              <label for="folderIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bootstrap icon</label>
+              <div class="flex gap-2 items-center">
+                <input type="text" id="folderIcon" name="icon" placeholder="folder"
+                       class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <span id="folderIconPreview" class="w-10 h-10 flex items-center justify-center border border-gray-200 dark:border-gray-600 rounded text-gray-700 dark:text-gray-200">
+                  <i class="bi bi-folder"></i>
+                </span>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enter any Bootstrap icon name like folder, rss, bookmark.</p>
+              <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">https://icons.getbootstrap.com/</a>
+            </div>
+
+          <div class="flex gap-2 pt-2">
+            <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition">
+              Save
+            </button>
+            <button type="button" id="deleteFolderBtn" onclick="deleteFolder()"
+                    class="hidden bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white px-4 py-2 rounded font-medium transition">
+              Delete
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Confirmation Modal -->
   <div id="confirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4" onclick="event.stopPropagation()">
