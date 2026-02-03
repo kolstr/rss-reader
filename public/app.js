@@ -413,19 +413,23 @@ function closeSettingsModal() {
 }
 
 // Folder modal functions
-function normalizeBootstrapIcon(value) {
-  let icon = (value || '').trim();
-  if (!icon) return 'folder';
-  icon = icon.replace(/^bi\s+/, '');
-  icon = icon.replace(/^bi-/, '');
-  return icon;
+function normalizeFontAwesomeClass(value) {
+  const icon = (value || '').trim();
+  if (!icon) return 'fa-solid fa-folder';
+  if (/fa-/.test(icon)) {
+    if (!/fa-(solid|brands|regular)\b/.test(icon) && /^fa-/.test(icon)) {
+      return `fa-solid ${icon}`;
+    }
+    return icon;
+  }
+  return `fa-solid fa-${icon.replace(/^bi-/, '')}`;
 }
 
 function updateFolderIconPreview(value) {
   const preview = document.getElementById('folderIconPreview');
   if (!preview) return;
-  const icon = normalizeBootstrapIcon(value);
-  preview.innerHTML = `<i class="bi bi-${icon}"></i>`;
+  const icon = normalizeFontAwesomeClass(value);
+  preview.innerHTML = `<i class="${icon}"></i>`;
 }
 
 function openFolderModal() {
@@ -437,8 +441,8 @@ function openFolderModal() {
   document.getElementById('deleteFolderBtn').classList.add('hidden');
   document.getElementById('folderModal').classList.remove('hidden');
   const iconInput = document.getElementById('folderIcon');
-  if (iconInput) iconInput.value = 'folder';
-  updateFolderIconPreview('folder');
+  if (iconInput) iconInput.value = 'fa-solid fa-folder';
+  updateFolderIconPreview('fa-solid fa-folder');
 }
 
 function editFolder(id, label, icon, isDefault) {
@@ -447,7 +451,7 @@ function editFolder(id, label, icon, isDefault) {
   document.getElementById('folderModalTitle').textContent = 'Edit Folder';
   document.getElementById('folderId').value = id;
   document.getElementById('folderLabel').value = label;
-  document.getElementById('folderIcon').value = icon || 'folder';
+  document.getElementById('folderIcon').value = normalizeFontAwesomeClass(icon || 'fa-solid fa-folder');
   document.getElementById('folderModal').classList.remove('hidden');
 
   if (currentFolderIsDefault) {
@@ -455,7 +459,7 @@ function editFolder(id, label, icon, isDefault) {
   } else {
     document.getElementById('deleteFolderBtn').classList.remove('hidden');
   }
-  updateFolderIconPreview(icon || 'folder');
+  updateFolderIconPreview(icon || 'fa-solid fa-folder');
 }
 
 function closeFolderModal() {
@@ -790,7 +794,7 @@ document.getElementById('folderForm')?.addEventListener('submit', async (e) => {
 
   const label = document.getElementById('folderLabel').value.trim();
   const iconRaw = document.getElementById('folderIcon').value.trim();
-  const icon = normalizeBootstrapIcon(iconRaw);
+  const icon = normalizeFontAwesomeClass(iconRaw);
 
   try {
     let response;

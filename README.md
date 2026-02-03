@@ -9,7 +9,7 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
 - **Feed Management**: Add, edit, and delete RSS feeds via a settings modal
 - **Aggregated View**: View all items from all feeds in one place via the "All" feed
 - **Feed Sidebar**: Browse individual feeds with unread counts
-- **Folders**: Group feeds into collapsible folders with icons, unread badges, and persistent collapse state
+- **Folders**: Group feeds into collapsible folders with Font Awesome icons, unread badges, and persistent collapse state
 - **Visual Indicators**: 
   - Colored left border on cards indicates the source feed
   - Gray border for read items
@@ -104,7 +104,7 @@ The application will be available at http://localhost:3000
    - Click individual feeds to filter by source
    - Click a folder to view items from all feeds in that folder
 5. **Folders**:
-   - Click "Add Folder" to create a folder and pick an icon name from https://icons.getbootstrap.com/
+   - Click "Add Folder" to create a folder and copy the classes from https://fontawesome.com/search (e.g., fa-solid fa-1)
    - Hover a folder and click the gear icon to edit
    - Collapse/expand folders; the state is saved in your browser
 6. **Read Items**: Click any card to open the article in a new tab

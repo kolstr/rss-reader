@@ -80,7 +80,7 @@
           Add Feed
         </button>
         <button onclick="openFolderModal()" class="mt-2 w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition flex items-center justify-start gap-2">
-          <i class="bi bi-folder-plus text-base"></i>
+          <i class="fa-solid fa-folder-plus text-base"></i>
           Add Folder
         </button>
         <button onclick="openFilterModal()" class="mt-2 w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition flex items-center justify-start gap-2">
@@ -137,9 +137,11 @@
                     </svg>
                   </button>
                   <div class="w-5 h-5 mr-2 flex items-center justify-center relative">
-                    <% const folderIconName = (folder.icon || 'folder').replace(/^bi-/, ''); %>
-                    <i class="folder-icon bi bi-<%= folderIconName %>"></i>
-                    <svg onclick="event.preventDefault(); event.stopPropagation(); editFolder(<%= folder.id %>, '<%= folder.label.replace(/'/g, "\\'") %>', '<%= folderIconName.replace(/'/g, "\\'") %>', <%= folder.is_default || 0 %>)"
+                    <% let folderIconClass = folder.icon || 'fa-solid fa-folder'; %>
+                    <% if (!/fa-/.test(folderIconClass)) { folderIconClass = `fa-solid fa-${folderIconClass.replace(/^bi-/, '')}`; } %>
+                    <% if (/^fa-/.test(folderIconClass) && !/fa-(solid|brands|regular)\b/.test(folderIconClass)) { folderIconClass = `fa-solid ${folderIconClass}`; } %>
+                    <i class="folder-icon <%= folderIconClass %>"></i>
+                    <svg onclick="event.preventDefault(); event.stopPropagation(); editFolder(<%= folder.id %>, '<%= folder.label.replace(/'/g, "\\'") %>', '<%= folderIconClass.replace(/'/g, "\\'") %>', <%= folder.is_default || 0 %>)"
                          class="settings-icon w-5 h-5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer absolute inset-0"
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -450,16 +452,16 @@
           </div>
 
             <div>
-              <label for="folderIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bootstrap icon</label>
+              <label for="folderIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Font Awesome classes</label>
               <div class="flex gap-2 items-center">
-                <input type="text" id="folderIcon" name="icon" placeholder="folder"
+                <input type="text" id="folderIcon" name="icon" placeholder="fa-solid fa-1"
                        class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <span id="folderIconPreview" class="w-10 h-10 flex items-center justify-center border border-gray-200 dark:border-gray-600 rounded text-gray-700 dark:text-gray-200">
-                  <i class="bi bi-folder"></i>
+                  <i class="fa-solid fa-folder"></i>
                 </span>
               </div>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enter any Bootstrap icon name like folder, rss, bookmark.</p>
-              <a href="https://icons.getbootstrap.com/" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">https://icons.getbootstrap.com/</a>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enter raw Font Awesome classes like fa-solid fa-1 or fa-brands fa-linux.</p>
+              <a href="https://fontawesome.com/search" target="_blank" rel="noopener noreferrer" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">https://fontawesome.com/search</a>
             </div>
 
           <div class="flex gap-2 pt-2">
