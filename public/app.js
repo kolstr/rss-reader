@@ -291,50 +291,10 @@ function openSettingsModal() {
   setupUrlAutoFetch();
 }
 
-// Auto-fetch feed metadata when URL is entered
-let urlFetchTimeout = null;
+// Setup for URL field (no longer auto-fetches on blur)
 function setupUrlAutoFetch() {
-  const urlInput = document.getElementById('feedUrl');
-  const titleInput = document.getElementById('feedTitle');
-  const iconInput = document.getElementById('feedIcon');
-  const colorInput = document.getElementById('feedColor');
-  
-  // Remove old listener if exists
-  const newUrlInput = urlInput.cloneNode(true);
-  urlInput.parentNode.replaceChild(newUrlInput, urlInput);
-  
-  newUrlInput.addEventListener('blur', async () => {
-    const url = newUrlInput.value.trim();
-    
-    // Skip if editing existing feed or no URL
-    if (currentFeedId || !url) return;
-    
-    // Skip if title is already filled
-    if (titleInput.value.trim()) return;
-    
-    try {
-      // Validate URL format
-      new URL(url);
-      
-      const response = await fetch('/api/feeds/fetch-metadata', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feedUrl: url }),
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          titleInput.value = result.title || '';
-          iconInput.value = result.iconUrl || '';
-          colorInput.value = result.color || '#3b82f6';
-        }
-      }
-    } catch (error) {
-      // Silently fail - user can enter manually
-      console.log('Could not fetch feed metadata:', error.message);
-    }
-  });
+  // This function is kept for compatibility but no longer sets up blur listener
+  // Users must click the "Fetch" button to auto-detect metadata
 }
 
 function editFeed(id, title, url, iconUrl, color, fetchContent) {
@@ -687,6 +647,9 @@ async function detectIconFromFeedUrl(feedUrl) {
 // Manual auto-fetch function for feed metadata
 async function autoFetchFeedMeta() {
   const feedUrlInput = document.getElementById('feedUrl');
+  const titleInput = document.getElementById('feedTitle');
+  const iconInput = document.getElementById('feedIcon');
+  const colorInput = document.getElementById('feedColor');
   const feedUrl = feedUrlInput?.value.trim();
   
   if (!feedUrl) {
@@ -708,7 +671,27 @@ async function autoFetchFeedMeta() {
       btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="ml-2">Fetching...</span>';
     }
     
-    await detectIconFromFeedUrl(feedUrl);
+    // Use fetch-metadata endpoint which properly extracts feed icons
+    const response = await fetch('/api/feeds/fetch-metadata', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedUrl }),
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success) {
+        titleInput.value = result.title || '';
+        iconInput.value = result.iconUrl || '';
+        colorInput.value = result.color || '#3b82f6';
+      } else {
+        showAlert(result.error || 'Failed to fetch feed metadata', 'Error', 'error');
+      }
+    } else {
+      showAlert('Failed to fetch feed metadata', 'Error', 'error');
+    }
+  } catch (error) {
+    showAlert('Error: ' + error.message, 'Error', 'error');
   } finally {
     if (btn && originalContent) {
       btn.disabled = false;
