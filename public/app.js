@@ -337,7 +337,7 @@ function setupUrlAutoFetch() {
   });
 }
 
-function editFeed(id, title, url, iconUrl, color, fetchContent, folderId) {
+function editFeed(id, title, url, iconUrl, color, fetchContent) {
   currentFeedId = id;
   document.getElementById('modalTitle').textContent = 'Edit Feed';
   document.getElementById('feedId').value = id;
@@ -347,12 +347,6 @@ function editFeed(id, title, url, iconUrl, color, fetchContent, folderId) {
   document.getElementById('feedColor').value = color;
   document.getElementById('deleteFeedBtn').classList.remove('hidden');
   document.getElementById('settingsModal').classList.remove('hidden');
-  
-  // Set folder
-  const folderSelect = document.getElementById('feedFolder');
-  if (folderSelect) {
-    folderSelect.value = folderId || 1;
-  }
   
   // Set fetch content toggle
   setFetchContentToggle(fetchContent === 1);
@@ -365,195 +359,6 @@ function closeSettingsModal() {
   document.getElementById('settingsModal').classList.add('hidden');
   currentFeedId = null;
 }
-
-// Folder modal management
-let currentFolderId = null;
-
-function openFolderModal() {
-  currentFolderId = null;
-  document.getElementById('folderModalTitle').textContent = 'Add Folder';
-  document.getElementById('folderForm').reset();
-  document.getElementById('folderId').value = '';
-  document.getElementById('folderIcon').value = 'fa-folder';
-  document.getElementById('deleteFolderBtn').classList.add('hidden');
-  document.getElementById('folderModal').classList.remove('hidden');
-  updateFolderIconPreview();
-}
-
-function editFolder(id, title, icon) {
-  currentFolderId = id;
-  document.getElementById('folderModalTitle').textContent = 'Edit Folder';
-  document.getElementById('folderId').value = id;
-  document.getElementById('folderTitle').value = title;
-  document.getElementById('folderIcon').value = icon || 'fa-folder';
-  
-  // Only show delete button for non-default folders
-  if (id === 1) {
-    document.getElementById('deleteFolderBtn').classList.add('hidden');
-  } else {
-    document.getElementById('deleteFolderBtn').classList.remove('hidden');
-  }
-  
-  document.getElementById('folderModal').classList.remove('hidden');
-  updateFolderIconPreview();
-}
-
-function closeFolderModal() {
-  document.getElementById('folderModal').classList.add('hidden');
-  currentFolderId = null;
-}
-
-function updateFolderIconPreview() {
-  const iconInput = document.getElementById('folderIcon');
-  const preview = document.getElementById('folderIconPreview');
-  if (iconInput && preview) {
-    const iconClass = iconInput.value.trim() || 'fa-folder';
-    preview.className = `fa-solid ${iconClass} text-gray-600 dark:text-gray-300 text-lg`;
-  }
-}
-
-// Setup icon preview update on input
-document.addEventListener('DOMContentLoaded', function() {
-  const iconInput = document.getElementById('folderIcon');
-  if (iconInput) {
-    iconInput.addEventListener('input', updateFolderIconPreview);
-    iconInput.addEventListener('change', updateFolderIconPreview);
-  }
-});
-
-// Folder form submission
-document.getElementById('folderForm')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  const submitBtn = e.target.querySelector('button[type="submit"]');
-  const originalBtnContent = submitBtn.innerHTML;
-  
-  // Show loading state
-  submitBtn.disabled = true;
-  submitBtn.innerHTML = `
-    <svg class="w-5 h-5 animate-spin inline-block" fill="none" viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-    </svg>
-    Saving...
-  `;
-  
-  const formData = {
-    title: document.getElementById('folderTitle').value,
-    icon: document.getElementById('folderIcon').value || 'fa-folder',
-  };
-  
-  try {
-    let response;
-    if (currentFolderId) {
-      // Update existing folder
-      response = await fetch(`/api/folders/${currentFolderId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-    } else {
-      // Create new folder
-      response = await fetch('/api/folders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-    }
-    
-    if (response.ok) {
-      closeFolderModal();
-      window.location.reload();
-    } else {
-      const error = await response.json();
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalBtnContent;
-      showAlert('Error: ' + error.error, 'Error', 'error');
-    }
-  } catch (error) {
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = originalBtnContent;
-    showAlert('Error: ' + error.message, 'Error', 'error');
-  }
-});
-
-// Delete folder
-async function deleteFolder() {
-  if (!currentFolderId) return;
-  
-  if (currentFolderId === 1) {
-    showAlert('Cannot delete the default folder', 'Error', 'error');
-    return;
-  }
-  
-  showConfirm('Are you sure you want to delete this folder? Feeds will be moved to the default folder.', 'Delete Folder', async () => {
-    try {
-      const response = await fetch(`/api/folders/${currentFolderId}`, {
-        method: 'DELETE',
-      });
-      
-      if (response.ok) {
-        closeFolderModal();
-        window.location.href = '/';
-      } else {
-        const error = await response.json();
-        showAlert('Error: ' + error.error, 'Error', 'error');
-      }
-    } catch (error) {
-      showAlert('Error: ' + error.message, 'Error', 'error');
-    }
-  });
-}
-
-// Folder collapse/expand management
-const collapsedFolders = new Set(JSON.parse(localStorage.getItem('collapsedFolders') || '[]'));
-
-function toggleFolder(folderId) {
-  const container = document.querySelector(`[data-folder-id="${folderId}"]`);
-  if (!container) return;
-  
-  const feedsContainer = container.querySelector('.folder-feeds');
-  const toggleBtn = container.querySelector('.folder-toggle svg');
-  
-  if (collapsedFolders.has(folderId)) {
-    // Expand
-    collapsedFolders.delete(folderId);
-    feedsContainer?.classList.remove('hidden');
-    toggleBtn?.classList.remove('-rotate-90');
-  } else {
-    // Collapse
-    collapsedFolders.add(folderId);
-    feedsContainer?.classList.add('hidden');
-    toggleBtn?.classList.add('-rotate-90');
-  }
-  
-  // Save to localStorage
-  localStorage.setItem('collapsedFolders', JSON.stringify([...collapsedFolders]));
-}
-
-// Initialize folder states on load
-function initFolderStates() {
-  collapsedFolders.forEach(folderId => {
-    const container = document.querySelector(`[data-folder-id="${folderId}"]`);
-    if (!container) return;
-    
-    const feedsContainer = container.querySelector('.folder-feeds');
-    const toggleBtn = container.querySelector('.folder-toggle svg');
-    
-    feedsContainer?.classList.add('hidden');
-    toggleBtn?.classList.add('-rotate-90');
-  });
-}
-
-// Close folder modal on background click
-document.getElementById('folderModal')?.addEventListener('click', (e) => {
-  if (e.target.id === 'folderModal') {
-    closeFolderModal();
-  }
-});
-
-// Initialize folder states
-document.addEventListener('DOMContentLoaded', initFolderStates);
 
 // Filter modal functions
 async function openFilterModal() {
@@ -811,7 +616,6 @@ document.getElementById('feedForm')?.addEventListener('submit', async (e) => {
     icon_url: document.getElementById('feedIcon').value,
     color: document.getElementById('feedColor').value,
     fetch_content: document.getElementById('feedFetchContent').value === '1',
-    folder_id: parseInt(document.getElementById('feedFolder').value) || 1,
   };
   
   try {

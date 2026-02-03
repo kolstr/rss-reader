@@ -7,10 +7,8 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
 ## Features
 
 - **Feed Management**: Add, edit, and delete RSS feeds via a settings modal
-- **Folder Organization**: Organize feeds into collapsible folders with custom icons
 - **Aggregated View**: View all items from all feeds in one place via the "All" feed
 - **Feed Sidebar**: Browse individual feeds with unread counts
-- **Folder Navigation**: Click folders to view all items from feeds within that folder
 - **Visual Indicators**: 
   - Colored left border on cards indicates the source feed
   - Gray border for read items
@@ -91,7 +89,7 @@ The application will be available at http://localhost:3000
 
 ## API Endpoints
 
-- `GET /` - Main page (all items or filtered by feed/folder)
+- `GET /` - Main page (all items or filtered by feed)
 - `GET /api/feeds` - Get all feeds
 - `POST /api/feeds/detect-icon` - Detect icon and color from feed URL
 - `POST /api/feeds` - Create a new feed
@@ -99,43 +97,27 @@ The application will be available at http://localhost:3000
 - `DELETE /api/feeds/:id` - Delete a feed
 - `POST /api/feeds/:id/refresh` - Refresh a specific feed
 - `POST /api/feeds/refresh-all` - Refresh all feeds
-- `GET /api/folders` - Get all folders
-- `POST /api/folders` - Create a new folder
-- `PUT /api/folders/:id` - Update a folder
-- `DELETE /api/folders/:id` - Delete a folder
 - `POST /api/items/:id/read` - Mark item as read
 - `POST /api/items/:id/unread` - Mark item as unread
 
 ## How to Use
 
-1. **Add a Folder**: Click the "Add Folder" button in the sidebar to create a new folder
-2. **Configure Folder**: 
-   - Enter the folder title
-   - Choose a FontAwesome icon (e.g., fa-folder, fa-bookmark, fa-star, fa-newspaper, fa-rss)
-   - The icon preview updates as you type
-3. **Add a Feed**: Click the "Add Feed" button in the sidebar
-4. **Configure Feed**: 
+1. **Add a Feed**: Click the "Add Feed" button in the sidebar
+2. **Configure Feed**: 
    - Enter the feed title
    - Enter the RSS/Atom feed URL and tab out - the icon and color will be auto-detected
    - The icon URL and color fields will be automatically filled
-   - Select a folder to organize the feed (defaults to "Default")
    - Manually adjust if desired
-5. **Organize Feeds**: 
-   - Hover over folders to see the settings icon and click to edit
-   - Feeds are automatically organized under their assigned folders
-   - Click folder names to view all items from feeds in that folder
-   - Folders are collapsible - click the arrow to expand/collapse
-6. **Refresh Feeds**: 
+3. **Refresh Feeds**: 
    - Click "Refresh All" to fetch latest items manually
    - Feeds automatically refresh every 30 minutes in the background
-7. **Browse Items**: 
+4. **Browse Items**: 
    - Click "All" to see items from all feeds
    - Click individual feeds to filter by source
-   - Click folders to see items from all feeds in that folder
-8. **Read Items**: Click any card to open the article in a new tab
-9. **Manage Read Status**: Use "Mark Read/Unread" buttons to track reading progress
-10. **Dark Mode**: Click the sun/moon icon in the sidebar header to toggle dark mode
-11. **Mobile**: Use the hamburger menu (☰) to show/hide the sidebar on mobile devices
+5. **Read Items**: Click any card to open the article in a new tab
+6. **Manage Read Status**: Use "Mark Read/Unread" buttons to track reading progress
+7. **Dark Mode**: Click the sun/moon icon in the sidebar header to toggle dark mode
+8. **Mobile**: Use the hamburger menu (☰) to show/hide the sidebar on mobile devices
 
 ## License
 
