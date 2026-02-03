@@ -380,6 +380,10 @@ function initFolderCollapseState() {
     const collapsed = !!state[folderId];
     setFolderCollapsed(folderId, collapsed);
   });
+  const prepaintStyle = document.querySelector('style[data-inline="folder-collapse-prepaint"]');
+  if (prepaintStyle) {
+    prepaintStyle.remove();
+  }
 }
 
 function editFeed(id, title, url, iconUrl, color, fetchContent, folderId) {
