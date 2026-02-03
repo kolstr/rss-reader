@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const cron = require('node-cron');
-const { db, feedQueries, itemQueries, statsQueries, filterKeywordQueries } = require('./db');
+const { db, feedQueries, folderQueries, itemQueries, statsQueries, filterKeywordQueries } = require('./db');
 const { refreshFeed, refreshAllFeeds, getFaviconUrl } = require('./services/rss');
 const { detectIconAndColor } = require('./services/iconDetector');
 
@@ -27,30 +27,68 @@ function getUnreadCounts(feeds) {
   return counts;
 }
 
+// Helper to get unread counts per folder
+function getFolderUnreadCounts(folders) {
+  const counts = {};
+  for (const folder of folders) {
+    const result = statsQueries.getUnreadCountByFolder.get(folder.id);
+    counts[folder.id] = result ? result.count : 0;
+  }
+  return counts;
+}
+
+// Helper to organize feeds by folder
+function getFeedsByFolder(feeds, folders) {
+  const feedsByFolder = {};
+  for (const folder of folders) {
+    feedsByFolder[folder.id] = [];
+  }
+  for (const feed of feeds) {
+    const folderId = feed.folder_id || 1;
+    if (!feedsByFolder[folderId]) {
+      feedsByFolder[folderId] = [];
+    }
+    feedsByFolder[folderId].push(feed);
+  }
+  return feedsByFolder;
+}
+
 // Routes
 
 // Home page - show all items or items from a specific feed
 app.get('/', (req, res) => {
   const feedId = req.query.feed;
+  const folderId = req.query.folder;
   const feeds = feedQueries.getAll.all();
+  const folders = folderQueries.getAll.all();
   const unreadCounts = getUnreadCounts(feeds);
+  const folderUnreadCounts = getFolderUnreadCounts(folders);
+  const feedsByFolder = getFeedsByFolder(feeds, folders);
   const totalUnread = statsQueries.getUnreadCount.get().count;
   
   let items;
   let currentFeed = null;
+  let currentFolder = null;
   
   if (feedId) {
     items = itemQueries.getByFeed.all(feedId);
     currentFeed = feedQueries.getById.get(feedId);
+  } else if (folderId) {
+    items = itemQueries.getByFolder.all(folderId);
+    currentFolder = folderQueries.getById.get(folderId);
   } else {
     items = itemQueries.getAll.all();
   }
   
   res.render('index', {
     feeds,
+    folders,
+    feedsByFolder,
     items,
     currentFeed,
+    currentFolder,
     unreadCounts,
+    folderUnreadCounts,
     totalUnread,
     searchTerm: '',
   });
@@ -64,7 +102,10 @@ app.post('/search', (req, res) => {
   }
 
   const feeds = feedQueries.getAll.all();
+  const folders = folderQueries.getAll.all();
   const unreadCounts = getUnreadCounts(feeds);
+  const folderUnreadCounts = getFolderUnreadCounts(folders);
+  const feedsByFolder = getFeedsByFolder(feeds, folders);
   const totalUnread = statsQueries.getUnreadCount.get().count;
 
   const likeTerm = `%${searchTerm}%`;
@@ -72,9 +113,13 @@ app.post('/search', (req, res) => {
 
   res.render('index', {
     feeds,
+    folders,
+    feedsByFolder,
     items,
     currentFeed: null,
+    currentFolder: null,
     unreadCounts,
+    folderUnreadCounts,
     totalUnread,
     searchTerm,
   });
@@ -184,7 +229,7 @@ app.post('/api/feeds/detect-color-from-icon', async (req, res) => {
 
 // API: Create a new feed
 app.post('/api/feeds', async (req, res) => {
-  const { title, url, color, fetch_content } = req.body;
+  const { title, url, color, fetch_content, folder_id } = req.body;
   
   if (!title || !url) {
     return res.status(400).json({ error: 'Title and URL are required' });
@@ -193,7 +238,8 @@ app.post('/api/feeds', async (req, res) => {
   try {
     const iconUrl = getFaviconUrl(url);
     const fetchContentValue = fetch_content ? 1 : 0;
-    const result = feedQueries.create.run(title, url, iconUrl, color || '#3b82f6', fetchContentValue);
+    const folderId = folder_id || 1;
+    const result = feedQueries.create.run(title, url, iconUrl, color || '#3b82f6', fetchContentValue, folderId);
     
     // Fetch initial items (with content fetching if enabled)
     await refreshFeed(result.lastInsertRowid, url, fetchContentValue === 1);
@@ -207,7 +253,7 @@ app.post('/api/feeds', async (req, res) => {
 // API: Update a feed
 app.put('/api/feeds/:id', (req, res) => {
   const { id } = req.params;
-  const { title, url, icon_url, color, fetch_content } = req.body;
+  const { title, url, icon_url, color, fetch_content, folder_id } = req.body;
   
   if (!title || !url) {
     return res.status(400).json({ error: 'Title and URL are required' });
@@ -215,7 +261,8 @@ app.put('/api/feeds/:id', (req, res) => {
   
   try {
     const fetchContentValue = fetch_content ? 1 : 0;
-    feedQueries.update.run(title, url, icon_url, color || '#3b82f6', fetchContentValue, id);
+    const folderId = folder_id || 1;
+    feedQueries.update.run(title, url, icon_url, color || '#3b82f6', fetchContentValue, folderId, id);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -319,6 +366,79 @@ app.post('/api/items/bulk-read', (req, res) => {
     const markMultiple = db.prepare(`UPDATE items SET read_at = CURRENT_TIMESTAMP WHERE id IN (${itemIds.map(() => '?').join(',')})`);
     markMultiple.run(...itemIds);
     res.json({ success: true, count: itemIds.length });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Get all folders
+app.get('/api/folders', (req, res) => {
+  try {
+    const folders = folderQueries.getAll.all();
+    const folderUnreadCounts = getFolderUnreadCounts(folders);
+    res.json({ folders, folderUnreadCounts });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Create a new folder
+app.post('/api/folders', (req, res) => {
+  const { title, icon } = req.body;
+  
+  if (!title) {
+    return res.status(400).json({ error: 'Title is required' });
+  }
+  
+  try {
+    const maxOrderResult = folderQueries.getMaxSortOrder.get();
+    const sortOrder = (maxOrderResult?.max_order || 0) + 1;
+    const result = folderQueries.create.run(title, icon || 'fa-folder', sortOrder);
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Update a folder
+app.put('/api/folders/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, icon } = req.body;
+  
+  if (!title) {
+    return res.status(400).json({ error: 'Title is required' });
+  }
+  
+  // Prevent editing default folder title
+  if (id === '1' && title !== 'Default') {
+    // Allow changing default folder, but warn
+  }
+  
+  try {
+    folderQueries.update.run(title, icon || 'fa-folder', id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// API: Delete a folder
+app.delete('/api/folders/:id', (req, res) => {
+  const { id } = req.params;
+  
+  // Prevent deleting default folder
+  if (id === '1') {
+    return res.status(400).json({ error: 'Cannot delete the default folder' });
+  }
+  
+  try {
+    // Move feeds from this folder to default folder
+    const moveFeedsStmt = db.prepare('UPDATE feeds SET folder_id = 1 WHERE folder_id = ?');
+    moveFeedsStmt.run(id);
+    
+    // Delete the folder
+    folderQueries.delete.run(id);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

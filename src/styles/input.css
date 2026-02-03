@@ -66,6 +66,24 @@
   display: none;
 }
 
+/* Folder icon hover swap */
+.folder-icon-container .settings-icon {
+  display: none;
+}
+
+.folder-header:hover .folder-icon-container .settings-icon {
+  display: block;
+}
+
+.folder-header:hover .folder-icon-container .folder-icon {
+  display: none;
+}
+
+/* Folder toggle rotation */
+.folder-toggle svg.-rotate-90 {
+  transform: rotate(-90deg);
+}
+
 /* Prevent flash of read items when showRead=false (applied pre-paint via index.ejs) */
 .hide-read article.feed-border-read {
   display: none;

@@ -1,3 +1,16 @@
+-- Folders table
+CREATE TABLE IF NOT EXISTS folders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  icon TEXT DEFAULT 'fa-folder',
+  sort_order INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default folder
+INSERT OR IGNORE INTO folders (id, title, icon, sort_order) VALUES (1, 'Default', 'fa-folder', 0);
+
 -- Feeds table
 CREATE TABLE IF NOT EXISTS feeds (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -6,9 +19,14 @@ CREATE TABLE IF NOT EXISTS feeds (
   icon_url TEXT,
   color TEXT DEFAULT '#3b82f6',
   fetch_content BOOLEAN DEFAULT 0,
+  folder_id INTEGER DEFAULT 1,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE SET DEFAULT
 );
+
+-- Index for folder lookups
+CREATE INDEX IF NOT EXISTS idx_feeds_folder_id ON feeds(folder_id);
 
 -- Items table
 CREATE TABLE IF NOT EXISTS items (

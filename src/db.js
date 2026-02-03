@@ -43,9 +43,20 @@ runMigrations();
 const feedQueries = {
   getAll: db.prepare('SELECT * FROM feeds ORDER BY title'),
   getById: db.prepare('SELECT * FROM feeds WHERE id = ?'),
-  create: db.prepare('INSERT INTO feeds (title, url, icon_url, color, fetch_content) VALUES (?, ?, ?, ?, ?)'),
-  update: db.prepare('UPDATE feeds SET title = ?, url = ?, icon_url = ?, color = ?, fetch_content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'),
+  getByFolder: db.prepare('SELECT * FROM feeds WHERE folder_id = ? ORDER BY title'),
+  create: db.prepare('INSERT INTO feeds (title, url, icon_url, color, fetch_content, folder_id) VALUES (?, ?, ?, ?, ?, ?)'),
+  update: db.prepare('UPDATE feeds SET title = ?, url = ?, icon_url = ?, color = ?, fetch_content = ?, folder_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'),
   delete: db.prepare('DELETE FROM feeds WHERE id = ?'),
+};
+
+// Folder queries
+const folderQueries = {
+  getAll: db.prepare('SELECT * FROM folders ORDER BY sort_order, title'),
+  getById: db.prepare('SELECT * FROM folders WHERE id = ?'),
+  create: db.prepare('INSERT INTO folders (title, icon, sort_order) VALUES (?, ?, ?)'),
+  update: db.prepare('UPDATE folders SET title = ?, icon = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'),
+  delete: db.prepare('DELETE FROM folders WHERE id = ?'),
+  getMaxSortOrder: db.prepare('SELECT MAX(sort_order) as max_order FROM folders'),
 };
 
 // Item queries
@@ -61,6 +72,13 @@ const itemQueries = {
     FROM items 
     JOIN feeds ON items.feed_id = feeds.id 
     WHERE items.feed_id = ? 
+    ORDER BY items.pub_date DESC
+  `),
+  getByFolder: db.prepare(`
+    SELECT items.*, feeds.title as feed_title, feeds.color as feed_color, feeds.icon_url as feed_icon
+    FROM items 
+    JOIN feeds ON items.feed_id = feeds.id 
+    WHERE feeds.folder_id = ? 
     ORDER BY items.pub_date DESC
   `),
   search: db.prepare(`
@@ -96,6 +114,11 @@ const itemQueries = {
 const statsQueries = {
   getUnreadCount: db.prepare('SELECT COUNT(*) as count FROM items WHERE read_at IS NULL'),
   getUnreadCountByFeed: db.prepare('SELECT COUNT(*) as count FROM items WHERE feed_id = ? AND read_at IS NULL'),
+  getUnreadCountByFolder: db.prepare(`
+    SELECT COUNT(*) as count FROM items 
+    JOIN feeds ON items.feed_id = feeds.id 
+    WHERE feeds.folder_id = ? AND items.read_at IS NULL
+  `),
 };
 
 // Filter keyword queries
@@ -108,6 +131,7 @@ const filterKeywordQueries = {
 module.exports = {
   db,
   feedQueries,
+  folderQueries,
   itemQueries,
   statsQueries,
   filterKeywordQueries,
