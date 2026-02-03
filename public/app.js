@@ -1697,12 +1697,6 @@ document.getElementById('filterModal')?.addEventListener('click', (e) => {
   }
 });
 
-document.getElementById('folderModal')?.addEventListener('click', (e) => {
-  if (e.target.id === 'folderModal') {
-    closeFolderModal();
-  }
-});
-
 // Enable auto-mark-as-read on scroll
 setupAutoMarkAsReadOnScroll();
 
