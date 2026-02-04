@@ -4,3 +4,5 @@ data/*.sqlite
 public/styles.css
 *.log
 .DS_Store
+.env
+.vscode/

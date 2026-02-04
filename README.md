@@ -26,7 +26,7 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
 - **Favicon Support**: Auto-fetches feed icons or use custom icon URLs
 - **Auto Color Detection**: Automatically extracts dominant color from feed icon (server-side, no CORS issues)
 - **Smart Icon Detection**: Automatically detects icon when you enter feed URL
-- **Auto-Refresh**: Feeds automatically refresh every 30 minutes via cron job. Articles older than 3 days are automatically removed.
+- **Auto-Refresh**: Feeds automatically refresh every 30 minutes via cron job. Articles older than the configured maximum age (default: 3 days) are automatically removed.
 - **Keyword Filtering**: RSS entries containing these keywords in their title or url will be filtered out and not added to the database.
 - **Dark Mode**: Toggle between light and dark themes with persistent preference
 - **Typography Merriweather Font**: Uses the Merriweather font for improved readability
@@ -87,6 +87,24 @@ npm start
 ```
 
 The application will be available at http://localhost:3000
+
+## Environment Variables
+
+You can configure the application using the following environment variables:
+
+- `PORT` - Port number for the application (default: 3000)
+- `NODE_ENV` - Environment mode (development/production)
+- `MAX_ARTICLE_AGE_DAYS` - Maximum age in days for articles. Articles older than this will be automatically removed during the scheduled refresh (default: 3)
+- `TZ` - Timezone for the container (e.g., Europe/Berlin)
+
+### Example .env file
+
+```bash
+PORT=3000
+NODE_ENV=production
+MAX_ARTICLE_AGE_DAYS=7
+TZ=Europe/Berlin
+```
 
 ## License
 

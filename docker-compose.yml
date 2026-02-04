@@ -12,5 +12,5 @@ services:
       - NODE_ENV=production
       - PORT=6789
       - TZ=Europe/Berlin
-
+      - MAX_ARTICLE_AGE_DAYS=3
       

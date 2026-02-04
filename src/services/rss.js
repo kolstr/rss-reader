@@ -175,8 +175,9 @@ async function refreshFeed(feedId, feedUrl, fetchContent = false) {
     itemQueries.getAllTitles.all().map(row => row.title)
   );
   
-  // Calculate cutoff date - 3 days ago
-  const threeDaysAgo = new Date(Date.now() - (3 * 24 * 60 * 60 * 1000));
+  // Calculate cutoff date - MAX_ARTICLE_AGE_DAYS (default: 3 days)
+  const maxAgeDays = parseInt(process.env.MAX_ARTICLE_AGE_DAYS || '3', 10);
+  const cutoffDate = new Date(Date.now() - (maxAgeDays * 24 * 60 * 60 * 1000));
   
   let newItems = 0;
   let filteredItems = 0;
@@ -218,9 +219,9 @@ async function refreshFeed(feedId, feedUrl, fetchContent = false) {
       getFirstTextValue(item['atom:updated']);
     const pubDate = normalizeDate(item.isoDate || item.pubDate || updatedFallback);
     
-    // Skip items older than 3 days
+    // Skip items older than MAX_ARTICLE_AGE_DAYS
     const itemDate = new Date(pubDate);
-    if (itemDate < threeDaysAgo) {
+    if (itemDate < cutoffDate) {
       tooOldItems++;
       continue; // Skip this item
     }
