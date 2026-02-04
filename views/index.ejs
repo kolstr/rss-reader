@@ -149,8 +149,8 @@
           <% folders.forEach(folder => { %>
             <div class="folder-section" data-folder-id="<%= folder.id %>">
               <div class="folder-item-container relative">
-                <a href="/?folder=<%= folder.id %>" class="flex items-center px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition <%= currentFolder && currentFolder.id === folder.id ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300' %>">
-                  <button type="button" class="mr-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" onclick="event.preventDefault(); event.stopPropagation(); toggleFolderCollapse(<%= folder.id %>)" aria-label="Toggle folder">
+                <a href="/?folder=<%= folder.id %>" class="flex items-center rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition <%= currentFolder && currentFolder.id === folder.id ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300' %>">
+                  <button type="button" class="px-2 py-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" onclick="event.preventDefault(); event.stopPropagation(); toggleFolderCollapse(<%= folder.id %>)" aria-label="Toggle folder">
                     <svg class="w-4 h-4" data-folder-caret="<%= folder.id %>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                     </svg>
@@ -169,14 +169,14 @@
                   </div>
                   <span class="flex-1 truncate text-sm"><%= folder.label %></span>
                   <% if (folderUnreadCounts[folder.id] > 0) { %>
-                    <span class="folder-unread-badge text-xs px-2 py-1 rounded-full bg-blue-500 dark:bg-blue-600 text-white" data-folder-unread="<%= folder.id %>"><%= folderUnreadCounts[folder.id] %></span>
+                    <span class="folder-unread-badge mx-3 text-xs px-2 py-1 rounded-full bg-blue-500 dark:bg-blue-600 text-white" data-folder-unread="<%= folder.id %>"><%= folderUnreadCounts[folder.id] %></span>
                   <% } %>
                 </a>
               </div>
               <div class="folder-feeds mt-1 space-y-1 pl-6" data-folder-feeds="<%= folder.id %>">
                 <% feeds.filter(feed => feed.folder_id === folder.id).forEach(feed => { %>
                   <div class="feed-item-container relative" data-feed-id="<%= feed.id %>" data-folder-id="<%= folder.id %>">
-                    <a href="/?feed=<%= feed.id %>" class="flex items-center px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition <%= currentFeed && currentFeed.id === feed.id ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300' %>">
+                    <a href="/?feed=<%= feed.id %>" class="flex items-center px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition <%= currentFeed && currentFeed.id === feed.id ? 'bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300' %>">
                       <!-- Icon container that swaps with settings icon on hover -->
                       <div class="w-5 h-5 mr-3 flex items-center justify-center relative">
                         <% if (feed.icon_url) { %>
@@ -194,7 +194,7 @@
                       </div>
                       <span class="flex-1 truncate text-sm"><%= feed.title %></span>
                       <% if (unreadCounts[feed.id] > 0) { %>
-                        <span class="feed-unread-badge text-xs px-2 py-1 rounded-full" style="background-color: <%= feed.color %>; color: white;"><%= unreadCounts[feed.id] %></span>
+                        <span class="feed-unread-badge text-xs px-2 py-1 mr-1 rounded-full" style="background-color: <%= feed.color %>; color: white;"><%= unreadCounts[feed.id] %></span>
                       <% } %>
                     </a>
                   </div>
