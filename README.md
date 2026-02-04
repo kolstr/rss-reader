@@ -29,6 +29,7 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
 - **Auto-Refresh**: Feeds automatically refresh every 30 minutes via cron job. Articles older than 3 days are automatically removed.
 - **Keyword Filtering**: RSS entries containing these keywords in their title or url will be filtered out and not added to the database.
 - **Dark Mode**: Toggle between light and dark themes with persistent preference
+- **Typography Merriweather Font**: Uses the Merriweather font for improved readability
 ## Screenshots
 
 <table>
@@ -86,31 +87,6 @@ npm start
 ```
 
 The application will be available at http://localhost:3000
-
-## How to Use
-
-1. **Add a Feed**: Click the "Add Feed" button in the sidebar
-2. **Configure Feed**: 
-   - Enter the feed title
-   - Enter the RSS/Atom feed URL and tab out - the icon and color will be auto-detected
-   - The icon URL and color fields will be automatically filled
-   - Manually adjust if desired
-   - Choose a folder to organize the feed
-3. **Refresh Feeds**: 
-   - Click "Refresh All" to fetch latest items manually
-   - Feeds automatically refresh every 30 minutes in the background
-4. **Browse Items**: 
-   - Click "All" to see items from all feeds
-   - Click individual feeds to filter by source
-   - Click a folder to view items from all feeds in that folder
-5. **Folders**:
-   - Click "Add Folder" to create a folder and copy the classes from https://fontawesome.com/search (e.g., fa-solid fa-1)
-   - Hover a folder and click the gear icon to edit
-   - Collapse/expand folders; the state is saved in your browser
-6. **Read Items**: Click any card to open the article in a new tab
-7. **Manage Read Status**: Use "Mark Read/Unread" buttons to track reading progress
-8. **Dark Mode**: Click the sun/moon icon in the sidebar header to toggle dark mode
-9. **Mobile**: Use the hamburger menu (☰) to show/hide the sidebar on mobile devices
 
 ## License
 
