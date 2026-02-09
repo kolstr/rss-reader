@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS items (
   link TEXT NOT NULL,
   description TEXT,
   full_content TEXT,
+  ttr INTEGER,
   image_url TEXT,
   pub_date DATETIME,
   read_at DATETIME,

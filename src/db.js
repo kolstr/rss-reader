@@ -106,7 +106,7 @@ const itemQueries = {
     ORDER BY items.pub_date DESC
   `),
   getById: db.prepare('SELECT * FROM items WHERE id = ?'),
-  getByGuid: db.prepare('SELECT id, link, full_content FROM items WHERE feed_id = ? AND guid = ?'),
+  getByGuid: db.prepare('SELECT id, link, full_content, ttr FROM items WHERE feed_id = ? AND guid = ?'),
   upsert: db.prepare(`
     INSERT INTO items (feed_id, guid, title, link, description, image_url, pub_date)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -117,7 +117,7 @@ const itemQueries = {
       image_url = excluded.image_url,
       pub_date = excluded.pub_date
   `),
-  updateFullContent: db.prepare('UPDATE items SET full_content = ? WHERE id = ?'),
+  updateFullContent: db.prepare('UPDATE items SET full_content = ?, ttr = ? WHERE id = ?'),
   markRead: db.prepare('UPDATE items SET read_at = CURRENT_TIMESTAMP WHERE id = ?'),
   markUnread: db.prepare('UPDATE items SET read_at = NULL WHERE id = ?'),
   deleteByFeed: db.prepare('DELETE FROM items WHERE feed_id = ?'),

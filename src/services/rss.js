@@ -267,7 +267,10 @@ async function refreshFeed(feedId, feedUrl, fetchContent = false) {
       try {
         const contentResult = await extractArticleContent(item.link);
         if (contentResult.success && contentResult.content) {
-          itemQueries.updateFullContent.run(contentResult.content, item.id);
+          const ttrSeconds = Number.isFinite(contentResult.ttr)
+            ? Math.round(contentResult.ttr)
+            : null;
+          itemQueries.updateFullContent.run(contentResult.content, ttrSeconds, item.id);
           contentFetched++;
         } else {
           contentFailed++;

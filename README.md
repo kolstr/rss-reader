@@ -19,6 +19,7 @@ A modern RSS feed reader built with Node.js, EJS templating, SQLite database, an
   - Clickable to open in new tab
   - Mark as read/unread functionality
 - **Full Content Fetching**: Option to fetch and read full article content directly within the feed reader
+- **Read Time Indicator**: Stores time-to-read (TTR) per article and shows minutes with a short/medium/long bar badge next to "Read all"
 - **Mobile Responsive**: Sidebar with hamburger menu toggle for mobile devices
 - **Progressive Web App (PWA)**: Installable web app 
 - **Mark as Read by Scroll**: Articles are automatically marked as read when scrolled out of view

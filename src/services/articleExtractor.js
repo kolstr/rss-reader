@@ -23,7 +23,7 @@ async function getExtractor() {
 /**
  * Extract article content from a URL
  * @param {string} url - The URL of the article to extract
- * @returns {Promise<{success: boolean, content?: string, error?: string}>}
+ * @returns {Promise<{success: boolean, content?: string, title?: string, description?: string, ttr?: number, error?: string}>}
  */
 async function extractArticleContent(url) {
   if (!url) {
@@ -43,11 +43,14 @@ async function extractArticleContent(url) {
       return { success: false, error: 'Could not extract content from page' };
     }
 
+    const ttrSeconds = Number.isFinite(article.ttr) ? Math.round(article.ttr) : null;
+
     return {
       success: true,
       content: article.content,
       title: article.title,
       description: article.description,
+      ttr: ttrSeconds,
     };
   } catch (error) {
     console.error(`Error extracting article from ${url}:`, error.message);

@@ -170,3 +170,77 @@
 .article-full-content figcaption {
   @apply text-sm text-gray-500 dark:text-gray-400 text-center mt-2;
 }
+
+/* Read time badge with short/medium/long indicator */
+.ttr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+}
+
+.ttr-bars {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 2px;
+}
+
+.ttr-bars span {
+  width: 4px;
+  height: 8px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.25;
+}
+
+.ttr-short {
+  color: #15803d;
+  background: rgba(22, 163, 74, 0.12);
+  border-color: rgba(22, 163, 74, 0.35);
+}
+
+.ttr-short .ttr-bars span:nth-child(1) {
+  opacity: 0.9;
+}
+
+.ttr-medium {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.ttr-medium .ttr-bars span:nth-child(-n+2) {
+  opacity: 0.9;
+}
+
+.ttr-long {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.ttr-long .ttr-bars span {
+  opacity: 0.9;
+}
+
+.dark .ttr-short {
+  color: #86efac;
+  background: rgba(22, 163, 74, 0.2);
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.dark .ttr-medium {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.dark .ttr-long {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.45);
+}

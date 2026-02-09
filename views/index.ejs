@@ -322,6 +322,20 @@
                       <%= item.read_at ? 'Mark Unread' : 'Mark Read' %>
                     </button>
                     <% if (item.full_content) { %>
+                      <%
+                        const ttrSeconds = Number.isFinite(item.ttr) ? item.ttr : null;
+                        const ttrMinutes = ttrSeconds ? Math.max(1, Math.round(ttrSeconds / 60)) : null;
+                        let ttrClass = '';
+                        if (ttrSeconds) {
+                          if (ttrSeconds <= 240) {
+                            ttrClass = 'ttr-short';
+                          } else if (ttrSeconds <= 600) {
+                            ttrClass = 'ttr-medium';
+                          } else {
+                            ttrClass = 'ttr-long';
+                          }
+                        }
+                      %>
                       <button onclick="toggleFullContent(<%= item.id %>, this)" 
                               class="read-all-btn text-xs text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 transition flex items-center gap-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -329,6 +343,19 @@
                         </svg>
                         Read all
                       </button>
+                      <% if (ttrMinutes) { %>
+                        <span class="ttr-badge <%= ttrClass %>" title="Estimated time to read">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2M12 4a8 8 0 100 16 8 8 0 000-16z"></path>
+                          </svg>
+                          <span><%= ttrMinutes %> min</span>
+                          <span class="ttr-bars" aria-hidden="true">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                        </span>
+                      <% } %>
                     <% } %>
                   </div>
                 </div>
